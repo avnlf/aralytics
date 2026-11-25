@@ -1,0 +1,1888 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Subjects | Aralytics</title>
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        .subject-card {
+            position: relative;
+        }
+
+        .remove-button {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            background: transparent;
+            color: #A0A0A0;
+            border: none;
+            font-size: 21px;
+            line-height: 1;
+            padding: 2px 6px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .remove-button:hover {
+            color: #C87575;
+            background: transparent;
+        }
+
+        .subject-units {
+            margin-top: 8px;
+            color: #78977B;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .edit-units-button {
+            margin-top: 8px;
+            padding: 5px 10px;
+            border: 1px solid #A8C9C0;
+            border-radius: 6px;
+            background: transparent;
+            color: #526F58;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .edit-units-button:hover {
+            background: #E9F0E6;
+        }
+
+        /* GWA BUTTON */
+
+        .gwa-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 14px 20px;
+            margin: 20px 0;
+            background: #78977B;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .gwa-button:hover {
+            background: #647F68;
+        }
+
+        /* GWA SCREEN */
+
+        .gwa-summary {
+            background: #FFFFFF;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(53, 72, 59, 0.06);
+            margin: 25px 0 30px;
+        }
+
+        .gwa-summary h2 {
+            color: #35483B;
+            margin-bottom: 18px;
+        }
+
+        .gwa-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .gwa-summary-card {
+            background: #F8F8F2;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .gwa-summary-card p {
+            color: #7B897D;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .gwa-summary-card h3 {
+            color: #35483B;
+            font-size: 28px;
+            margin: 0;
+        }
+
+        .gwa-breakdown {
+            background: #FFFFFF;
+            padding: 22px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(53, 72, 59, 0.06);
+            margin-top: 20px;
+        }
+
+        .gwa-breakdown h2 {
+            color: #35483B;
+            margin-bottom: 8px;
+        }
+
+        .gwa-status {
+            color: #7B897D;
+            font-size: 14px;
+            margin: 12px 0 18px;
+        }
+
+        .gwa-table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 18px;
+        }
+
+        .gwa-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 550px;
+        }
+
+        .gwa-table th,
+        .gwa-table td {
+            padding: 14px 12px;
+            text-align: left;
+            border-bottom: 1px solid #E9F0E6;
+            font-size: 14px;
+        }
+
+        .gwa-table th {
+            color: #526F58;
+            background: #F8F8F2;
+            font-weight: 600;
+        }
+
+        .gwa-table td {
+            color: #35483B;
+        }
+
+        .gwa-table tfoot td {
+            font-weight: 700;
+            background: #F8F8F2;
+        }
+
+        .gwa-table .number-cell {
+            text-align: right;
+        }
+
+        @media (max-width: 600px) {
+            .gwa-summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h2><a href="index.html">Aralytics</a></h2>
+        <nav>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="subjects.html">Subjects</a>
+            <a href="calculator.html">Calculator</a>
+            <a href="goals.html">Goals</a>
+        </nav>
+    </header>
+
+    <main class="dashboard">
+
+        <!-- GRADE LEVEL SCREEN -->
+        <section id="gradeScreen">
+
+            <section class="welcome">
+                <p class="tagline">YOUR ACADEMIC RECORDS</p>
+                <h1>My Academics</h1>
+                <p>Select your grade level to access your academic records.</p>
+            </section>
+
+            <section class="grade-selection">
+                <div class="section-heading">
+                    <h2>Select Grade Level</h2>
+                    <p>Choose your current or previous grade level.</p>
+                </div>
+
+                <div class="grade-grid">
+
+                    <button class="grade-card" onclick="selectGrade(7)">
+                        <span class="grade-number">07</span>
+                        <h3>Grade 7</h3>
+                        <p>Junior High School</p>
+                    </button>
+
+                    <button class="grade-card" onclick="selectGrade(8)">
+                        <span class="grade-number">08</span>
+                        <h3>Grade 8</h3>
+                        <p>Junior High School</p>
+                    </button>
+
+                    <button class="grade-card" onclick="selectGrade(9)">
+                        <span class="grade-number">09</span>
+                        <h3>Grade 9</h3>
+                        <p>Junior High School</p>
+                    </button>
+
+                    <button class="grade-card" onclick="selectGrade(10)">
+                        <span class="grade-number">10</span>
+                        <h3>Grade 10</h3>
+                        <p>Junior High School</p>
+                    </button>
+
+                    <button class="grade-card" onclick="selectGrade(11)">
+                        <span class="grade-number">11</span>
+                        <h3>Grade 11</h3>
+                        <p>Senior High School</p>
+                    </button>
+
+                    <button class="grade-card" onclick="selectGrade(12)">
+                        <span class="grade-number">12</span>
+                        <h3>Grade 12</h3>
+                        <p>Senior High School</p>
+                    </button>
+
+                </div>
+            </section>
+        </section>
+
+
+        <!-- SEMESTER SCREEN -->
+        <section id="semesterScreen" style="display: none;">
+
+            <button class="back-button" onclick="goBackToGrades()">
+                ← Back to Grade Levels
+            </button>
+
+            <section class="welcome">
+                <p class="tagline">YOUR ACADEMIC RECORDS</p>
+                <h1 id="selectedGradeTitle">Grade 7</h1>
+                <p>Select a semester to continue.</p>
+            </section>
+
+            <section class="semester-selection">
+                <div class="section-heading">
+                    <h2>Select Semester</h2>
+                    <p>Choose the semester you want to manage.</p>
+                </div>
+
+                <div class="semester-grid">
+
+                    <button class="semester-card"
+                        onclick="selectSemester(1)">
+                        <span class="semester-number">01</span>
+                        <h3>Semester 1</h3>
+                        <p>First Semester</p>
+                    </button>
+
+                    <button class="semester-card"
+                        onclick="selectSemester(2)">
+                        <span class="semester-number">02</span>
+                        <h3>Semester 2</h3>
+                        <p>Second Semester</p>
+                    </button>
+
+                </div>
+            </section>
+        </section>
+
+
+        <!-- GRADING PERIOD SCREEN -->
+        <section id="periodScreen" style="display: none;">
+
+            <button class="back-button" onclick="goBackToSemesters()">
+                ← Back to Semesters
+            </button>
+
+            <section class="welcome">
+                <p class="tagline">YOUR ACADEMIC RECORDS</p>
+                <h1 id="selectedPeriodTitle">Grade 7</h1>
+                <p id="selectedSemesterText">Semester 1</p>
+            </section>
+
+            <section class="period-selection">
+                <div class="section-heading">
+                    <h2>Select Grading Period</h2>
+                    <p>Choose which grading period you want to manage.</p>
+                </div>
+
+                <div class="period-grid">
+
+                    <button class="period-card"
+                        onclick="selectPeriod('Midterms')">
+                        <span class="period-icon">01</span>
+                        <h3>Midterms</h3>
+                        <p>Manage your midterm grades.</p>
+                    </button>
+
+                    <button class="period-card"
+                        onclick="selectPeriod('Finals')">
+                        <span class="period-icon">02</span>
+                        <h3>Finals</h3>
+                        <p>Manage your final grades.</p>
+                    </button>
+
+                    <button class="period-card"
+                        style="grid-column: 1 / -1;"
+                        onclick="viewSemesterGWA()">
+                        <h3>Semester GWA</h3>
+                        <p>View your combined semester performance.</p>
+                    </button>
+
+                </div>
+            </section>
+        </section>
+
+
+        <!-- SUBJECT LIST SCREEN -->
+        <section id="subjectScreen" style="display: none;">
+
+            <button class="back-button" onclick="goBackToPeriods()">
+                ← Back to Grading Periods
+            </button>
+
+            <section class="welcome">
+                <p class="tagline">YOUR ACADEMIC RECORDS</p>
+                <h1 id="subjectScreenTitle">My Subjects</h1>
+                <p id="subjectScreenSubtitle">
+                    Manage the subjects for this grading period.
+                </p>
+            </section>
+
+            <section class="subject-controls">
+                <div class="section-heading">
+                    <h2>Enrolled Subjects</h2>
+                    <p>Your subjects for the selected grading period.</p>
+                </div>
+            </section>
+
+            <button class="gwa-button" onclick="viewGWA()">
+                <span>▥</span> View GWA
+            </button>
+
+            <button class="gwa-button"
+                style="background: #A8C9C0; color: #35483B;"
+                onclick="openImportSubjects()">
+                Import Subjects
+            </button>
+
+            <section class="subject-grid" id="subjectList">
+                <!-- Subjects will appear here -->
+            </section>
+
+            <section class="add-subject-form">
+                <h2>Add a New Subject</h2>
+                <p>Enter the details of the subject you want to add.</p>
+
+                <div class="input-group">
+                    <label for="subjectName">Subject Name</label>
+                    <input
+                        type="text"
+                        id="subjectName"
+                        placeholder="e.g. General Mathematics">
+                </div>
+
+                <div class="input-group">
+                    <label for="teacherName">Teacher (Optional)</label>
+                    <input
+                        type="text"
+                        id="teacherName"
+                        placeholder="Enter teacher's name">
+                </div>
+
+                <div class="input-group">
+                    <label for="subjectUnits">Subject Units</label>
+                    <input
+                        type="number"
+                        id="subjectUnits"
+                        placeholder="e.g. 3.00"
+                        min="0.01"
+                        step="0.01">
+                </div>
+
+                <button class="add-button" onclick="addSubject()">
+                    Save Subject
+                </button>
+            </section>
+
+        </section>
+
+
+        <!-- IMPORT SUBJECTS SCREEN -->
+        <section id="importSubjectsScreen" style="display: none;">
+
+            <button class="back-button" onclick="closeImportSubjects()">
+                ← Back to Subjects
+            </button>
+
+            <section class="welcome">
+                <p class="tagline">SUBJECT MANAGEMENT</p>
+                <h1>Import Subjects</h1>
+                <p id="importSubjectsSubtitle">
+                    Select the subjects you want to copy.
+                </p>
+            </section>
+
+            <section class="gwa-breakdown">
+                <h2>Available Subjects</h2>
+
+                <div id="importSubjectsList"></div>
+
+                <button class="gwa-button" onclick="importSelectedSubjects()">
+                    Import Selected Subjects
+                </button>
+
+            </section>
+
+        </section>
+
+
+        <!-- GWA SCREEN -->
+        <section id="gwaScreen" style="display: none;">
+
+            <button class="back-button" onclick="goBackToSubjects()">
+                ← Back to Subjects
+            </button>
+
+            <section class="welcome">
+                <p class="tagline">YOUR ACADEMIC PERFORMANCE</p>
+                <h1 id="gwaScreenTitle">GWA Overview</h1>
+                <p id="gwaScreenSubtitle">
+                    View your grading-period performance.
+                </p>
+            </section>
+
+            <section class="gwa-summary">
+
+                <h2>Grading Period GWA</h2>
+
+                <div class="gwa-summary-grid">
+
+                    <div class="gwa-summary-card">
+                        <p>Current GWA</p>
+                        <h3 id="periodGWA">—</h3>
+                    </div>
+
+                    <div class="gwa-summary-card">
+                        <p>Subjects Included</p>
+                        <h3 id="gwaSubjectCount">0</h3>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <section class="gwa-breakdown">
+
+                <h2>Subject Contributions</h2>
+
+                <p class="gwa-status" id="gwaStatus">
+                    Your subject grades and weighted contributions will appear here.
+                </p>
+
+                <div id="gwaSubjectList"></div>
+
+            </section>
+
+        </section>
+
+
+        <!-- SEMESTER GWA SCREEN -->
+        <section id="semesterGWAScreen" style="display: none;">
+
+            <button class="back-button" onclick="goBackToPeriods()">
+                ← Back to Grading Periods
+            </button>
+
+            <section class="welcome">
+                <p class="tagline">YOUR ACADEMIC PERFORMANCE</p>
+                <h1 id="semesterGWATitle">Semester GWA</h1>
+                <p id="semesterGWASubtitle">
+                    View your combined semester performance.
+                </p>
+            </section>
+
+            <section class="gwa-summary">
+
+                <h2>Semester Overview</h2>
+
+                <div class="gwa-summary-grid">
+
+                    <div class="gwa-summary-card">
+                        <p>Semester GWA</p>
+                        <h3 id="semesterGWA">—</h3>
+                    </div>
+
+                    <div class="gwa-summary-card">
+                        <p>Subjects Included</p>
+                        <h3 id="semesterSubjectCount">0</h3>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <section class="gwa-breakdown">
+
+                <h2>Subject Contributions</h2>
+
+                <p class="gwa-status" id="semesterGWAStatus">
+                    Your Midterm grades, Finals grades, and semester contributions
+                    will appear here.
+                </p>
+
+                <div id="semesterGWASubjectList"></div>
+
+            </section>
+
+        </section>
+
+    </main>
+
+
+    <script>
+
+        let currentGrade = null;
+        let currentSemester = null;
+        let currentPeriod = null;
+
+        // IMPORT SUBJECTS VARIABLES
+
+        let importableSubjects = [];
+
+
+        // GRADE LEVEL NAVIGATION
+
+        function selectGrade(grade) {
+            currentGrade = grade;
+
+            document.getElementById("gradeScreen").style.display = "none";
+            document.getElementById("semesterScreen").style.display = "block";
+
+            document.getElementById("selectedGradeTitle").textContent =
+                "Grade " + grade;
+        }
+
+        function goBackToGrades() {
+            document.getElementById("semesterScreen").style.display = "none";
+            document.getElementById("gradeScreen").style.display = "block";
+        }
+
+
+        // SEMESTER NAVIGATION
+
+        function selectSemester(semester) {
+            currentSemester = semester;
+
+            document.getElementById("semesterScreen").style.display = "none";
+            document.getElementById("periodScreen").style.display = "block";
+
+            document.getElementById("selectedPeriodTitle").textContent =
+                "Grade " + currentGrade;
+
+            document.getElementById("selectedSemesterText").textContent =
+                "Semester " + currentSemester;
+        }
+
+        function goBackToSemesters() {
+            document.getElementById("periodScreen").style.display = "none";
+            document.getElementById("semesterScreen").style.display = "block";
+        }
+
+
+        // GRADING PERIOD NAVIGATION
+
+       
+function selectPeriod(period) {
+    currentPeriod = period;
+
+    // SAVE THE CURRENT ACADEMIC CONTEXT FOR THE DASHBOARD
+    localStorage.setItem("aralyticsCurrentGrade", currentGrade);
+    localStorage.setItem("aralyticsCurrentSemester", currentSemester);
+    localStorage.setItem("aralyticsCurrentPeriod", currentPeriod);
+
+    document.getElementById("periodScreen").style.display = "none";
+    document.getElementById("subjectScreen").style.display = "block";
+
+    document.getElementById("subjectScreenTitle").textContent =
+        "Grade " + currentGrade + " Subjects";
+
+    document.getElementById("subjectScreenSubtitle").textContent =
+        "Semester " + currentSemester + " | " + currentPeriod;
+
+    displaySubjects();
+}
+
+
+        function goBackToPeriods() {
+            document.getElementById("subjectScreen").style.display = "none";
+            document.getElementById("semesterGWAScreen").style.display = "none";
+            document.getElementById("periodScreen").style.display = "block";
+        }
+
+
+        // IMPORT SUBJECTS NAVIGATION
+
+        function openImportSubjects() {
+
+            const otherPeriod =
+                currentPeriod === "Midterms" ? "Finals" : "Midterms";
+
+            const otherSemester =
+                currentSemester === 1 ? 2 : 1;
+
+            // LOAD SUBJECTS FROM THE OTHER PERIOD IN THE CURRENT SEMESTER
+
+            const sameSemesterKey =
+                "aralyticsSubjects_G" + currentGrade +
+                "_S" + currentSemester +
+                "_" + otherPeriod;
+
+            const sameSemesterSubjects = JSON.parse(
+                localStorage.getItem(sameSemesterKey) || "[]"
+            );
+
+            // LOAD SUBJECTS FROM BOTH PERIODS IN THE OTHER SEMESTER
+
+            const otherSemesterMidtermsKey =
+                "aralyticsSubjects_G" + currentGrade +
+                "_S" + otherSemester +
+                "_Midterms";
+
+            const otherSemesterFinalsKey =
+                "aralyticsSubjects_G" + currentGrade +
+                "_S" + otherSemester +
+                "_Finals";
+
+            const otherSemesterMidterms = JSON.parse(
+                localStorage.getItem(otherSemesterMidtermsKey) || "[]"
+            );
+
+            const otherSemesterFinals = JSON.parse(
+                localStorage.getItem(otherSemesterFinalsKey) || "[]"
+            );
+
+            // COMBINE SUBJECTS AND RECORD THEIR ORIGINAL SEMESTER
+
+            const allSourceSubjects = [
+                ...sameSemesterSubjects.map(subject => ({
+                    ...subject,
+                    sourceSemester: currentSemester,
+                    sourcePeriod: otherPeriod
+                })),
+
+                ...otherSemesterMidterms.map(subject => ({
+                    ...subject,
+                    sourceSemester: otherSemester,
+                    sourcePeriod: "Midterms"
+                })),
+
+                ...otherSemesterFinals.map(subject => ({
+                    ...subject,
+                    sourceSemester: otherSemester,
+                    sourcePeriod: "Finals"
+                }))
+            ];
+
+            // REMOVE DUPLICATES BY SUBJECT NAME
+
+            const uniqueSubjects = [];
+            const seenNames = new Set();
+
+            allSourceSubjects.forEach(subject => {
+
+                const normalizedName =
+                    subject.name.trim().toLowerCase();
+
+                if (!seenNames.has(normalizedName)) {
+
+                    seenNames.add(normalizedName);
+                    uniqueSubjects.push(subject);
+
+                }
+
+            });
+
+            importableSubjects = uniqueSubjects;
+
+            document.getElementById("subjectScreen").style.display = "none";
+
+            document.getElementById("importSubjectsScreen").style.display =
+                "block";
+
+            document.getElementById("importSubjectsSubtitle").textContent =
+                "Choose subjects from your other grading period and Semester " +
+                otherSemester + ". Each subject appears only once.";
+
+            displayImportSubjects();
+        }
+
+
+        // CLOSE IMPORT SCREEN
+
+        function closeImportSubjects() {
+
+            document.getElementById("importSubjectsScreen").style.display =
+                "none";
+
+            document.getElementById("subjectScreen").style.display = "block";
+
+            displaySubjects();
+        }
+
+
+        // DISPLAY AVAILABLE SUBJECTS
+
+        function displayImportSubjects() {
+
+            const list = document.getElementById("importSubjectsList");
+
+            list.innerHTML = "";
+
+            const destinationSubjects = getPeriodSubjects();
+
+            if (importableSubjects.length === 0) {
+
+                list.innerHTML =
+                    "<p class='gwa-status'>There are no subjects available to import.</p>";
+
+                return;
+            }
+
+            // SELECT ALL CHECKBOX
+
+            const selectAllContainer = document.createElement("div");
+
+            selectAllContainer.style.marginBottom = "18px";
+            selectAllContainer.style.paddingBottom = "12px";
+            selectAllContainer.style.borderBottom = "1px solid #E9F0E6";
+
+            const selectAll = document.createElement("input");
+
+            selectAll.type = "checkbox";
+            selectAll.id = "selectAllImport";
+
+            const selectAllLabel = document.createElement("label");
+
+            selectAllLabel.htmlFor = "selectAllImport";
+            selectAllLabel.textContent = " Select All Available Subjects";
+            selectAllLabel.style.fontWeight = "600";
+            selectAllLabel.style.marginLeft = "8px";
+            selectAllLabel.style.color = "#35483B";
+
+            selectAllContainer.appendChild(selectAll);
+            selectAllContainer.appendChild(selectAllLabel);
+
+            list.appendChild(selectAllContainer);
+
+            // INDIVIDUAL SUBJECTS
+
+            importableSubjects.forEach((subject, index) => {
+
+                const alreadyExists = destinationSubjects.some(item =>
+                    item.name.trim().toLowerCase() ===
+                    subject.name.trim().toLowerCase()
+                );
+
+                const item = document.createElement("div");
+
+                item.style.padding = "14px";
+                item.style.marginBottom = "10px";
+                item.style.border = "1px solid #E9F0E6";
+                item.style.borderRadius = "8px";
+                item.style.background =
+                    alreadyExists ? "#F8F8F2" : "#FFFFFF";
+
+                const checkbox = document.createElement("input");
+
+                checkbox.type = "checkbox";
+                checkbox.className = "import-subject-checkbox";
+                checkbox.value = index;
+                checkbox.disabled = alreadyExists;
+
+                const label = document.createElement("label");
+
+                label.style.marginLeft = "10px";
+                label.style.color = "#35483B";
+                label.style.fontWeight = "600";
+                label.textContent = subject.name;
+
+                const details = document.createElement("p");
+
+                details.style.margin = "6px 0 0 26px";
+                details.style.fontSize = "13px";
+                details.style.color = "#7B897D";
+
+                // GET UNITS FROM THE ORIGINAL SEMESTER
+
+                const units = getSubjectUnitsForSemester(
+                    subject,
+                    subject.sourceSemester
+                );
+
+                if (alreadyExists) {
+
+                    details.textContent =
+                        "Already exists in " + currentPeriod +
+                        " — skipped";
+
+                } else {
+
+                    details.textContent =
+                        "Teacher: " + (subject.teacher || "Not specified") +
+                        " | Units: " +
+                        (units !== "" ? Number(units).toFixed(2) : "Not set") +
+                        " | Source: Semester " + subject.sourceSemester +
+                        " (" + subject.sourcePeriod + ")";
+                }
+
+                item.appendChild(checkbox);
+                item.appendChild(label);
+                item.appendChild(details);
+
+                list.appendChild(item);
+
+            });
+
+            // SELECT ALL BEHAVIOR
+
+            selectAll.addEventListener("change", function() {
+
+                const checkboxes = list.querySelectorAll(
+                    ".import-subject-checkbox"
+                );
+
+                checkboxes.forEach(checkbox => {
+
+                    if (!checkbox.disabled) {
+                        checkbox.checked = selectAll.checked;
+                    }
+
+                });
+
+            });
+
+            // UPDATE SELECT ALL WHEN INDIVIDUAL ITEMS CHANGE
+
+            const individualCheckboxes = list.querySelectorAll(
+                ".import-subject-checkbox"
+            );
+
+            individualCheckboxes.forEach(checkbox => {
+
+                checkbox.addEventListener("change", function() {
+
+                    const availableCheckboxes = Array.from(
+                        individualCheckboxes
+                    ).filter(item => !item.disabled);
+
+                    selectAll.checked =
+                        availableCheckboxes.length > 0 &&
+                        availableCheckboxes.every(item => item.checked);
+
+                });
+
+            });
+
+        }
+
+
+        // IMPORT SELECTED SUBJECTS
+
+        function importSelectedSubjects() {
+
+            const selectedCheckboxes = document.querySelectorAll(
+                ".import-subject-checkbox:checked"
+            );
+
+            if (selectedCheckboxes.length === 0) {
+
+                alert("Please select at least one subject to import.");
+                return;
+            }
+
+            const destinationSubjects = getPeriodSubjects();
+
+            let importedCount = 0;
+
+            selectedCheckboxes.forEach(checkbox => {
+
+                const index = Number(checkbox.value);
+                const sourceSubject = importableSubjects[index];
+
+                if (!sourceSubject) {
+                    return;
+                }
+
+                // PREVENT DUPLICATES
+
+                const alreadyExists = destinationSubjects.some(subject =>
+                    subject.name.trim().toLowerCase() ===
+                    sourceSubject.name.trim().toLowerCase()
+                );
+
+                if (alreadyExists) {
+                    return;
+                }
+
+                // GET UNITS FROM THE ORIGINAL SEMESTER
+
+                const sourceUnits = getSubjectUnitsForSemester(
+                    sourceSubject,
+                    sourceSubject.sourceSemester
+                );
+
+                // COPY BASIC SUBJECT INFORMATION ONLY
+
+                destinationSubjects.push({
+                    name: sourceSubject.name,
+                    teacher: sourceSubject.teacher || "",
+                    units: sourceUnits
+                });
+
+                // SAVE UNITS UNDER THE DESTINATION SEMESTER
+
+                const destinationUnitsKey =
+                    "aralyticsSubjectUnits_G" + currentGrade +
+                    "_S" + currentSemester +
+                    "_" + encodeURIComponent(
+                        sourceSubject.name.trim().toLowerCase()
+                    );
+
+                if (sourceUnits !== "") {
+
+                    localStorage.setItem(
+                        destinationUnitsKey,
+                        sourceUnits
+                    );
+
+                }
+
+                importedCount++;
+
+            });
+
+            if (importedCount === 0) {
+
+                alert(
+                    "No new subjects were imported. The selected subjects already exist."
+                );
+
+                closeImportSubjects();
+                return;
+            }
+
+            savePeriodSubjects(destinationSubjects);
+
+            alert(
+                importedCount +
+                " subject(s) successfully imported into " +
+                currentPeriod + "!"
+            );
+
+            closeImportSubjects();
+        }
+
+
+        // SEMESTER GWA NAVIGATION
+
+        function viewSemesterGWA() {
+
+            document.getElementById("periodScreen").style.display = "none";
+
+            document.getElementById("semesterGWAScreen").style.display = "block";
+
+            document.getElementById("semesterGWATitle").textContent =
+                "Grade " + currentGrade + " Semester GWA";
+
+            document.getElementById("semesterGWASubtitle").textContent =
+                "Semester " + currentSemester;
+
+            displaySemesterGWA();
+        }
+
+
+function viewGWA() {
+
+    document.getElementById("subjectScreen").style.display = "none";
+
+    document.getElementById("gwaScreen").style.display = "block";
+
+    document.getElementById("gwaScreenTitle").textContent =
+        "Grade " + currentGrade + " GWA";
+
+    document.getElementById("gwaScreenSubtitle").textContent =
+        "Semester " + currentSemester + " | " + currentPeriod;
+
+    displayGWA();
+}
+
+        function goBackToSubjects() {
+            document.getElementById("gwaScreen").style.display = "none";
+            document.getElementById("subjectScreen").style.display = "block";
+        }
+
+
+        // SUBJECT STORAGE
+
+        function getSubjectStorageKey() {
+            return "aralyticsSubjects_G" + currentGrade +
+                "_S" + currentSemester +
+                "_" + currentPeriod;
+        }
+
+        function getPeriodSubjects() {
+            const subjects = localStorage.getItem(getSubjectStorageKey());
+            return subjects ? JSON.parse(subjects) : [];
+        }
+
+        function savePeriodSubjects(subjects) {
+            localStorage.setItem(
+                getSubjectStorageKey(),
+                JSON.stringify(subjects)
+            );
+        }
+
+
+        // SHARED SUBJECT UNITS STORAGE
+
+        function getSubjectUnitsStorageKey(subjectName) {
+            return "aralyticsSubjectUnits_G" + currentGrade +
+                "_S" + currentSemester +
+                "_" + encodeURIComponent(subjectName.trim().toLowerCase());
+        }
+
+
+        function getSubjectUnitsForSemester(subject, semester) {
+
+            const key =
+                "aralyticsSubjectUnits_G" + currentGrade +
+                "_S" + semester +
+                "_" + encodeURIComponent(subject.name.trim().toLowerCase());
+
+            const savedUnits = localStorage.getItem(key);
+
+            if (savedUnits !== null) {
+                return savedUnits;
+            }
+
+            return subject.units ?? "";
+        }
+
+
+        function getSubjectUnits(subject) {
+            const savedUnits = localStorage.getItem(
+                getSubjectUnitsStorageKey(subject.name)
+            );
+
+            if (savedUnits !== null) {
+                return savedUnits;
+            }
+
+            return subject.units !== undefined ? subject.units : "";
+        }
+
+        function saveSubjectUnits(subjectName, units) {
+            localStorage.setItem(
+                getSubjectUnitsStorageKey(subjectName),
+                units.toFixed(2)
+            );
+        }
+
+
+        // DISPLAY SUBJECTS
+
+        function displaySubjects() {
+            const subjects = getPeriodSubjects();
+            const subjectList = document.getElementById("subjectList");
+
+            subjectList.innerHTML = "";
+
+            if (subjects.length === 0) {
+                subjectList.innerHTML =
+                    "<p class='empty-subjects'>No subjects added yet. Add your first subject below!</p>";
+                return;
+            }
+
+            subjects.forEach((subject, index) => {
+                const card = document.createElement("div");
+                card.className = "subject-card";
+
+                card.style.cursor = "pointer";
+                card.setAttribute("role", "button");
+                card.setAttribute("tabindex", "0");
+                card.setAttribute(
+                    "aria-label",
+                    "Open " + subject.name + " gradebook"
+                );
+
+                card.onclick = () => openGradebook(index);
+
+                card.onkeydown = (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openGradebook(index);
+                    }
+                };
+
+                const name = document.createElement("h3");
+                name.textContent = subject.name;
+
+                const teacher = document.createElement("p");
+                teacher.textContent =
+                    "Teacher: " + (subject.teacher || "Not specified");
+
+                const units = document.createElement("p");
+                units.className = "subject-units";
+
+                const currentUnits = getSubjectUnits(subject);
+
+                units.textContent = currentUnits !== ""
+                    ? "Units: " + Number(currentUnits).toFixed(2)
+                    : "Units: Not set";
+
+
+const gradeDisplay = document.createElement("p");
+gradeDisplay.className = "subject-units";
+
+const currentGradeValue = getSubjectGradeForPeriod(index, currentPeriod);
+
+gradeDisplay.textContent = currentGradeValue !== null
+    ? "Current Grade: " + currentGradeValue.toFixed(2)
+    : "Current Grade: Not yet graded";
+
+
+                const editUnits = document.createElement("button");
+                editUnits.textContent = "Edit Units";
+                editUnits.className = "edit-units-button";
+
+                editUnits.onclick = (event) => {
+                    event.stopPropagation();
+                    editSubjectUnits(index);
+                };
+
+                const setGrade = document.createElement("button");
+                setGrade.textContent = "Set Grade";
+                setGrade.className = "edit-units-button";
+
+                setGrade.onclick = (event) => {
+                    event.stopPropagation();
+                    setManualGrade(index);
+                };
+
+                const remove = document.createElement("button");
+                remove.textContent = "×";
+                remove.className = "remove-button";
+                remove.title = "Remove subject";
+                remove.setAttribute(
+                    "aria-label",
+                    "Remove " + subject.name
+                );
+
+                remove.onclick = (event) => {
+                    event.stopPropagation();
+                    removeSubject(index);
+                };
+
+                card.appendChild(name);
+                card.appendChild(teacher);
+                card.appendChild(units);
+                card.appendChild(editUnits);
+                card.appendChild(setGrade);
+                card.appendChild(remove);
+                card.appendChild(gradeDisplay);
+
+                subjectList.appendChild(card);
+            });
+        }
+
+
+        // EDIT SUBJECT UNITS
+
+        function editSubjectUnits(index) {
+            const subjects = getPeriodSubjects();
+            const subject = subjects[index];
+
+            const currentUnits = getSubjectUnits(subject);
+
+            const newUnits = prompt(
+                "Enter the subject units for " + subject.name + ":",
+                currentUnits !== "" ? currentUnits : "3.00"
+            );
+
+            if (newUnits === null) {
+                return;
+            }
+
+            const units = Number(newUnits);
+
+            if (
+                newUnits.trim() === "" ||
+                !Number.isFinite(units) ||
+                units <= 0
+            ) {
+                alert("Please enter a valid number greater than zero.");
+                return;
+            }
+
+            saveSubjectUnits(subject.name, units);
+
+            subject.units = units.toFixed(2);
+            savePeriodSubjects(subjects);
+
+            displaySubjects();
+        }
+
+
+        // SET MANUAL SUBJECT GRADE
+
+        function setManualGrade(index) {
+
+            const subjects = getPeriodSubjects();
+            const subject = subjects[index];
+
+            const storageKey =
+                "aralyticsManualGrade_G" + currentGrade +
+                "_S" + currentSemester +
+                "_" + currentPeriod +
+                "_Subject" + index;
+
+            const savedGrade = localStorage.getItem(storageKey);
+
+            const enteredGrade = prompt(
+                "Enter your " + currentPeriod +
+                " grade for " + subject.name + " (0–100):",
+                savedGrade !== null ? savedGrade : ""
+            );
+
+            if (enteredGrade === null) {
+                return;
+            }
+
+            if (enteredGrade.trim() === "") {
+                localStorage.removeItem(storageKey);
+                alert("Manual grade cleared. Your assessment-based grade will be used instead.");
+                return;
+            }
+
+            const grade = Number(enteredGrade);
+
+            if (
+                !Number.isFinite(grade) ||
+                grade < 0 ||
+                grade > 100
+            ) {
+                alert("Please enter a valid grade between 0 and 100.");
+                return;
+            }
+
+            localStorage.setItem(storageKey, grade.toString());
+
+            alert("Manual grade saved successfully!");
+        }
+
+
+        // OPEN SUBJECT GRADEBOOK
+
+        function openGradebook(index) {
+            const url = "gradebook.html" +
+                "?grade=" + currentGrade +
+                "&semester=" + currentSemester +
+                "&period=" + encodeURIComponent(currentPeriod) +
+                "&subjectIndex=" + index;
+
+            window.location.href = url;
+        }
+
+
+        // ADD SUBJECT
+
+        function addSubject() {
+            const nameInput = document.getElementById("subjectName");
+            const teacherInput = document.getElementById("teacherName");
+            const unitsInput = document.getElementById("subjectUnits");
+
+            const name = nameInput.value.trim();
+            const teacher = teacherInput.value.trim();
+            const unitsText = unitsInput.value.trim();
+            const units = Number(unitsText);
+
+            if (name === "") {
+                alert("Please enter a subject name.");
+                return;
+            }
+
+            if (
+                unitsText === "" ||
+                !Number.isFinite(units) ||
+                units <= 0
+            ) {
+                alert("Please enter valid subject units greater than zero.");
+                return;
+            }
+
+            const subjects = getPeriodSubjects();
+
+            const alreadyExists = subjects.some(subject =>
+                subject.name.toLowerCase() === name.toLowerCase()
+            );
+
+            if (alreadyExists) {
+                alert("This subject has already been added.");
+                return;
+            }
+
+            subjects.push({
+                name: name,
+                teacher: teacher,
+                units: units.toFixed(2)
+            });
+
+            saveSubjectUnits(name, units);
+            savePeriodSubjects(subjects);
+
+            nameInput.value = "";
+            teacherInput.value = "";
+            unitsInput.value = "";
+
+            displaySubjects();
+        }
+
+
+        // REMOVE SUBJECT
+
+        function removeSubject(index) {
+            const subjects = getPeriodSubjects();
+
+            if (!confirm("Are you sure you want to remove this subject?")) {
+                return;
+            }
+
+            subjects.splice(index, 1);
+
+            savePeriodSubjects(subjects);
+            displaySubjects();
+        }
+
+
+        // CALCULATE AN INDIVIDUAL SUBJECT GRADE
+
+        
+function calculateSubjectGrade(index) {
+    return getSubjectGradeForPeriod(index, currentPeriod);
+}
+
+
+// GET SUBJECT GRADE (MANUAL OR ASSESSMENT-BASED)
+
+function getSubjectGradeForPeriod(index, period) {
+
+    const key =
+        "aralyticsManualGrade_G" + currentGrade +
+        "_S" + currentSemester +
+        "_" + period +
+        "_Subject" + index;
+
+    const manualGrade = localStorage.getItem(key);
+
+    // USE MANUAL GRADE IF AVAILABLE
+
+    if (manualGrade !== null) {
+        const grade = Number(manualGrade);
+
+        if (Number.isFinite(grade)) {
+            return grade;
+        }
+    }
+
+    // OTHERWISE, CALCULATE FROM ASSESSMENTS
+
+    return calculateSubjectGradeForPeriod(index, period);
+}
+
+
+
+        // CALCULATE SUBJECT GRADE FOR A SPECIFIC PERIOD
+
+        function calculateSubjectGradeForPeriod(index, period) {
+
+            const componentKey =
+                "aralyticsComponents_G" + currentGrade +
+                "_S" + currentSemester +
+                "_" + period +
+                "_Subject" + index;
+
+            const assessmentKey =
+                "aralyticsAssessments_G" + currentGrade +
+                "_S" + currentSemester +
+                "_" + period +
+                "_Subject" + index;
+
+            const savedComponents = localStorage.getItem(componentKey);
+            const savedAssessments = localStorage.getItem(assessmentKey);
+
+            if (!savedComponents || !savedAssessments) {
+                return null;
+            }
+
+            const components = JSON.parse(savedComponents);
+            const assessments = JSON.parse(savedAssessments);
+
+            let weightedTotal = 0;
+            let gradedWeight = 0;
+
+            components.forEach((component, componentIndex) => {
+
+                const componentAssessments =
+                    assessments[componentIndex] || [];
+
+                let totalEarned = 0;
+                let totalPossible = 0;
+
+                componentAssessments.forEach(assessment => {
+
+                    const earned = Number(assessment.earned);
+                    const possible = Number(assessment.possible);
+
+                    if (
+                        assessment.earned !== "" &&
+                        assessment.possible !== "" &&
+                        Number.isFinite(earned) &&
+                        Number.isFinite(possible) &&
+                        possible > 0 &&
+                        earned >= 0 &&
+                        earned <= possible
+                    ) {
+                        totalEarned += earned;
+                        totalPossible += possible;
+                    }
+                });
+
+                if (totalPossible > 0) {
+
+                    const average =
+                        (totalEarned / totalPossible) * 100;
+
+                    const weight = Number(component.weight);
+
+                    if (Number.isFinite(weight) && weight > 0) {
+                        weightedTotal += average * weight;
+                        gradedWeight += weight;
+                    }
+                }
+            });
+
+            if (gradedWeight === 0) {
+                return null;
+            }
+
+            return weightedTotal / gradedWeight;
+        }
+
+
+        // DISPLAY GRADING PERIOD GWA
+
+        function displayGWA() {
+
+            const subjects = getPeriodSubjects();
+
+            const gwaSubjectList =
+                document.getElementById("gwaSubjectList");
+
+            const gwaStatus =
+                document.getElementById("gwaStatus");
+
+            const periodGWA =
+                document.getElementById("periodGWA");
+
+            const gwaSubjectCount =
+                document.getElementById("gwaSubjectCount");
+
+            gwaSubjectList.innerHTML = "";
+
+            let totalWeightedGrades = 0;
+            let totalUnits = 0;
+            let includedSubjects = 0;
+
+            if (subjects.length === 0) {
+
+                periodGWA.textContent = "—";
+                gwaSubjectCount.textContent = "0";
+
+                gwaStatus.textContent =
+                    "Add subjects to begin calculating your GWA.";
+
+                return;
+            }
+
+            const tableWrapper = document.createElement("div");
+            tableWrapper.className = "gwa-table-wrapper";
+
+            const table = document.createElement("table");
+            table.className = "gwa-table";
+
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th class="number-cell">Grade</th>
+                        <th class="number-cell">Units</th>
+                        <th class="number-cell">Weighted Grade</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2">Total</td>
+                        <td class="number-cell" id="gwaTotalUnits">0.00</td>
+                        <td class="number-cell" id="gwaTotalWeighted">0.00</td>
+                    </tr>
+                </tfoot>
+            `;
+
+            const tbody = table.querySelector("tbody");
+
+            subjects.forEach((subject, index) => {
+
+                const grade = calculateSubjectGrade(index);
+
+                const units = Number(getSubjectUnits(subject));
+
+                const validUnits =
+                    Number.isFinite(units) && units > 0;
+
+                const row = document.createElement("tr");
+
+                const nameCell = document.createElement("td");
+                nameCell.textContent = subject.name;
+
+                const gradeCell = document.createElement("td");
+                gradeCell.className = "number-cell";
+                gradeCell.textContent =
+                    grade !== null ? grade.toFixed(2) : "—";
+
+                const unitsCell = document.createElement("td");
+                unitsCell.className = "number-cell";
+                unitsCell.textContent =
+                    validUnits ? units.toFixed(2) : "Not set";
+
+                const weightedCell = document.createElement("td");
+                weightedCell.className = "number-cell";
+
+                if (grade !== null && validUnits) {
+
+                    const weightedGrade = grade * units;
+
+                    weightedCell.textContent =
+                        weightedGrade.toFixed(2);
+
+                    totalWeightedGrades += weightedGrade;
+                    totalUnits += units;
+                    includedSubjects++;
+
+                } else {
+
+                    weightedCell.textContent = "—";
+                }
+
+                row.appendChild(nameCell);
+                row.appendChild(gradeCell);
+                row.appendChild(unitsCell);
+                row.appendChild(weightedCell);
+
+                tbody.appendChild(row);
+            });
+
+            tableWrapper.appendChild(table);
+            gwaSubjectList.appendChild(tableWrapper);
+
+            // UPDATE TOTALS
+
+            document.getElementById("gwaTotalUnits").textContent =
+                totalUnits.toFixed(2);
+
+            document.getElementById("gwaTotalWeighted").textContent =
+                totalWeightedGrades.toFixed(2);
+
+            // UPDATE GWA SUMMARY
+
+            if (totalUnits > 0) {
+
+                const gwa = totalWeightedGrades / totalUnits;
+
+                periodGWA.textContent = gwa.toFixed(2);
+                gwaSubjectCount.textContent = includedSubjects;
+
+                gwaStatus.textContent =
+                    "Your GWA includes " + includedSubjects +
+                    " graded subject(s). Subjects without grades or valid units are excluded.";
+
+            } else {
+
+                periodGWA.textContent = "—";
+                gwaSubjectCount.textContent = "0";
+
+                gwaStatus.textContent =
+                    "No subjects with both a computed grade and valid units are available yet.";
+            }
+        }
+
+
+        // CALCULATE SEMESTER GWA
+
+        function displaySemesterGWA() {
+
+            const midtermSubjects = JSON.parse(
+                localStorage.getItem(
+                    "aralyticsSubjects_G" + currentGrade +
+                    "_S" + currentSemester + "_Midterms"
+                ) || "[]"
+            );
+
+            const finalSubjects = JSON.parse(
+                localStorage.getItem(
+                    "aralyticsSubjects_G" + currentGrade +
+                    "_S" + currentSemester + "_Finals"
+                ) || "[]"
+            );
+
+            const subjectList =
+                document.getElementById("semesterGWASubjectList");
+
+            const status =
+                document.getElementById("semesterGWAStatus");
+
+            const gwaDisplay =
+                document.getElementById("semesterGWA");
+
+            const subjectCount =
+                document.getElementById("semesterSubjectCount");
+
+            subjectList.innerHTML = "";
+
+            let totalWeightedGrades = 0;
+            let totalUnits = 0;
+            let includedSubjects = 0;
+
+            // COMBINE BOTH SUBJECT LISTS WITHOUT DUPLICATES
+
+            const allSubjects = [...midtermSubjects];
+
+            finalSubjects.forEach(finalSubject => {
+
+                const exists = allSubjects.some(subject =>
+                    subject.name.trim().toLowerCase() ===
+                    finalSubject.name.trim().toLowerCase()
+                );
+
+                if (!exists) {
+                    allSubjects.push(finalSubject);
+                }
+            });
+
+            if (allSubjects.length === 0) {
+
+                gwaDisplay.textContent = "—";
+                subjectCount.textContent = "0";
+
+                status.textContent =
+                    "Add subjects to your grading periods to begin calculating your Semester GWA.";
+
+                return;
+            }
+
+            // CREATE TABLE
+
+            const wrapper = document.createElement("div");
+            wrapper.className = "gwa-table-wrapper";
+
+            const table = document.createElement("table");
+            table.className = "gwa-table";
+
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th class="number-cell">Midterms</th>
+                        <th class="number-cell">Finals</th>
+                        <th class="number-cell">Semester Grade</th>
+                        <th class="number-cell">Units</th>
+                        <th class="number-cell">Weighted Grade</th>
+                    </tr>
+                </thead>
+
+                <tbody></tbody>
+
+                <tfoot>
+                    <tr>
+                        <td colspan="4">Total</td>
+                        <td class="number-cell" id="semesterTotalUnits">0.00</td>
+                        <td class="number-cell" id="semesterTotalWeighted">0.00</td>
+                    </tr>
+                </tfoot>
+            `;
+
+            const tbody = table.querySelector("tbody");
+
+            // DETERMINE SEMESTER WEIGHTING
+
+            const midtermWeight = currentGrade <= 10
+                ? 1 / 3
+                : 0.5;
+
+            const finalWeight = currentGrade <= 10
+                ? 2 / 3
+                : 0.5;
+
+            // PROCESS EACH SUBJECT
+
+            allSubjects.forEach(subject => {
+
+                const normalizedName =
+                    subject.name.trim().toLowerCase();
+
+                const midtermIndex = midtermSubjects.findIndex(item =>
+                    item.name.trim().toLowerCase() === normalizedName
+                );
+
+                const finalIndex = finalSubjects.findIndex(item =>
+                    item.name.trim().toLowerCase() === normalizedName
+                );
+
+               
+const midtermGrade = midtermIndex !== -1
+    ? getSubjectGradeForPeriod(
+        midtermIndex,
+        "Midterms"
+    )
+    : null;
+
+const finalGrade = finalIndex !== -1
+    ? getSubjectGradeForPeriod(
+        finalIndex,
+        "Finals"
+    )
+    : null;
+
+
+                const units = Number(getSubjectUnits(subject));
+
+                const validUnits =
+                    Number.isFinite(units) && units > 0;
+
+                let semesterGrade = null;
+
+                if (
+                    midtermGrade !== null &&
+                    finalGrade !== null
+                ) {
+                    semesterGrade =
+                        (midtermGrade * midtermWeight) +
+                        (finalGrade * finalWeight);
+                }
+
+                const row = document.createElement("tr");
+
+                const nameCell = document.createElement("td");
+                nameCell.textContent = subject.name;
+
+                const midtermCell = document.createElement("td");
+                midtermCell.className = "number-cell";
+                midtermCell.textContent =
+                    midtermGrade !== null
+                        ? midtermGrade.toFixed(2)
+                        : "—";
+
+                const finalCell = document.createElement("td");
+                finalCell.className = "number-cell";
+                finalCell.textContent =
+                    finalGrade !== null
+                        ? finalGrade.toFixed(2)
+                        : "—";
+
+                const semesterCell = document.createElement("td");
+                semesterCell.className = "number-cell";
+                semesterCell.textContent =
+                    semesterGrade !== null
+                        ? semesterGrade.toFixed(2)
+                        : "—";
+
+                const unitsCell = document.createElement("td");
+                unitsCell.className = "number-cell";
+                unitsCell.textContent =
+                    validUnits ? units.toFixed(2) : "Not set";
+
+                const weightedCell = document.createElement("td");
+                weightedCell.className = "number-cell";
+
+                if (semesterGrade !== null && validUnits) {
+
+                    const weightedGrade = semesterGrade * units;
+
+                    weightedCell.textContent =
+                        weightedGrade.toFixed(2);
+
+                    totalWeightedGrades += weightedGrade;
+                    totalUnits += units;
+                    includedSubjects++;
+
+                } else {
+
+                    weightedCell.textContent = "—";
+                }
+
+                row.appendChild(nameCell);
+                row.appendChild(midtermCell);
+                row.appendChild(finalCell);
+                row.appendChild(semesterCell);
+                row.appendChild(unitsCell);
+                row.appendChild(weightedCell);
+
+                tbody.appendChild(row);
+            });
+
+            wrapper.appendChild(table);
+            subjectList.appendChild(wrapper);
+
+            // UPDATE TOTALS
+
+            document.getElementById("semesterTotalUnits").textContent =
+                totalUnits.toFixed(2);
+
+            document.getElementById("semesterTotalWeighted").textContent =
+                totalWeightedGrades.toFixed(2);
+
+            // UPDATE SEMESTER GWA
+
+            if (totalUnits > 0) {
+
+                const gwa = totalWeightedGrades / totalUnits;
+
+                gwaDisplay.textContent = gwa.toFixed(2);
+                subjectCount.textContent = includedSubjects;
+
+                status.textContent =
+                    "Your Semester GWA includes " + includedSubjects +
+                    " subject(s) with both Midterm and Finals grades and valid units.";
+
+            } else {
+
+                gwaDisplay.textContent = "—";
+                subjectCount.textContent = "0";
+
+                status.textContent =
+                    "No subjects have both grading-period grades and valid units yet.";
+            }
+        }
+
+    </script>
+
+</body>
+</html>

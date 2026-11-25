@@ -1,0 +1,976 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade Goals | Aralytics</title>
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        .goals-context {
+            color: #7B897D;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .goal-section {
+            background: #FFFFFF;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 3px 12px rgba(53, 72, 59, 0.06);
+        }
+
+        .goal-section h2 {
+            color: #35483B;
+            margin-bottom: 8px;
+        }
+
+        .goal-description {
+            color: #7B897D;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .goal-summary {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 22px;
+        }
+
+        .goal-summary-card {
+            background: #F8F8F2;
+            padding: 18px;
+            border-radius: 10px;
+        }
+
+        .goal-summary-card p {
+            color: #7B897D;
+            font-size: 13px;
+            margin-bottom: 7px;
+        }
+
+        .goal-summary-card h3 {
+            color: #35483B;
+            font-size: 25px;
+            margin: 0;
+        }
+
+        .goal-subject-card {
+            border: 1px solid #E5EAE3;
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 15px;
+        }
+
+        .goal-subject-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .goal-subject-header h3 {
+            color: #35483B;
+            margin-bottom: 5px;
+        }
+
+        .goal-subject-header p {
+            color: #7B897D;
+            font-size: 13px;
+        }
+
+        .goal-current-grade {
+            color: #35483B;
+            font-size: 21px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .goal-input-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .goal-input-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .goal-input-group label {
+            display: block;
+            color: #35483B;
+            font-size: 13px;
+            margin-bottom: 7px;
+            font-weight: 600;
+        }
+
+        .goal-input-group input {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #DCE4DA;
+            border-radius: 7px;
+            font-size: 14px;
+        }
+
+        .goal-save-button {
+            background: #78977B;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            padding: 12px 18px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .goal-save-button:hover {
+            background: #66856A;
+        }
+
+        .goal-progress-track {
+            width: 100%;
+            height: 10px;
+            background: #E9F0E6;
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .goal-progress-fill {
+            height: 100%;
+            background: #78977B;
+            border-radius: 20px;
+            transition: width 0.3s ease;
+        }
+
+        .goal-progress-text {
+            color: #7B897D;
+            font-size: 13px;
+        }
+
+        .goal-status {
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .goal-empty {
+            background: #F8F8F2;
+            padding: 20px;
+            border-radius: 10px;
+            color: #7B897D;
+            text-align: center;
+        }
+
+        .gwa-goal-input {
+            max-width: 350px;
+        }
+
+        .goal-feedback {
+            color: #559B91;
+            font-size: 13px;
+            margin-top: 8px;
+            min-height: 18px;
+        }
+
+        @media (max-width: 600px) {
+            .goal-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .goal-subject-header {
+                flex-direction: column;
+            }
+
+            .goal-save-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h2><a href="index.html">Aralytics</a></h2>
+
+        <nav>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="subjects.html">Subjects</a>
+            <a href="goals.html">Goals</a>
+        </nav>
+    </header>
+
+    <main class="dashboard">
+
+        <section class="welcome">
+            <p class="tagline">PLAN YOUR PROGRESS</p>
+            <h1>Academic Goal Tracker</h1>
+            <p>Track your current performance and work toward your academic targets.</p>
+            <p class="goals-context" id="goalsContext">
+                Loading academic information...
+            </p>
+        </section>
+
+        <!-- OVERALL GWA GOAL -->
+
+        <section class="goal-section">
+
+            <h2>Overall GWA Goal</h2>
+
+            <p class="goal-description">
+                Track your current grading-period GWA against your desired target.
+            </p>
+
+            <div class="goal-summary">
+
+                <div class="goal-summary-card">
+                    <p>Current GWA</p>
+                    <h3 id="currentGWA">—</h3>
+                </div>
+
+                <div class="goal-summary-card">
+                    <p>Target GWA</p>
+                    <h3 id="targetGWA">Not Set</h3>
+                </div>
+
+            </div>
+
+            <div class="goal-input-row">
+
+                <div class="goal-input-group gwa-goal-input">
+                    <label for="gwaTargetInput">
+                        Desired GWA
+                    </label>
+
+                    <input
+                        type="number"
+                        id="gwaTargetInput"
+                        placeholder="Enter target (e.g. 90)"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                    >
+                </div>
+
+                <button
+                    class="goal-save-button"
+                    onclick="saveGWATarget()"
+                >
+                    Save GWA Goal
+                </button>
+
+            </div>
+
+            <div id="gwaProgress"></div>
+
+            <p class="goal-feedback" id="gwaFeedback"></p>
+
+        </section>
+
+
+        <!-- SUBJECT GOALS -->
+
+        <section class="goal-section">
+
+            <h2>Subject Goals</h2>
+
+            <p class="goal-description">
+                Your current grades are automatically retrieved from your subject gradebooks.
+                Set a target for each subject to monitor your progress.
+            </p>
+
+            <div class="goal-summary">
+
+                <div class="goal-summary-card">
+                    <p>Goals Set</p>
+                    <h3 id="trackedSubjects">0</h3>
+                </div>
+
+                <div class="goal-summary-card">
+                    <p>Goals Achieved</p>
+                    <h3 id="achievedGoals">0</h3>
+                </div>
+
+            </div>
+
+            <div id="subjectGoalsList">
+                <p class="goal-empty">Loading subjects...</p>
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script>
+
+        // CURRENT ACADEMIC CONTEXT
+
+        const currentGrade =
+            localStorage.getItem("aralyticsCurrentGrade");
+
+        const currentSemester =
+            localStorage.getItem("aralyticsCurrentSemester");
+
+        const currentPeriod =
+            localStorage.getItem("aralyticsCurrentPeriod");
+
+
+        // CHECK ACADEMIC CONTEXT
+
+        const validContext =
+            currentGrade &&
+            currentSemester &&
+            currentPeriod;
+
+        if (validContext) {
+
+            document.getElementById("goalsContext").textContent =
+                "Grade " + currentGrade +
+                " | Semester " + currentSemester +
+                " | " + currentPeriod;
+
+        } else {
+
+            document.getElementById("goalsContext").textContent =
+                "No academic period selected. Please select one in Subjects.";
+
+        }
+
+
+        // SUBJECT STORAGE
+
+        function getSubjects() {
+
+            if (!validContext) return [];
+
+            const key =
+                "aralyticsSubjects_G" + currentGrade +
+                "_S" + currentSemester +
+                "_" + currentPeriod;
+
+            const saved = localStorage.getItem(key);
+
+            return saved ? JSON.parse(saved) : [];
+        }
+
+
+        // MANUAL GRADE STORAGE KEY
+
+        function getManualGradeKey(index) {
+
+            return "aralyticsManualGrade_G" + currentGrade +
+                "_S" + currentSemester +
+                "_" + currentPeriod +
+                "_Subject" + index;
+        }
+
+
+        // CALCULATED GRADE STORAGE KEY
+
+        function getCalculatedGradeKey(subject) {
+
+            return "aralyticsSubjectGrade_G" + currentGrade +
+                "_S" + currentSemester +
+                "_" + currentPeriod +
+                "_" + encodeURIComponent(
+                    subject.name.trim().toLowerCase()
+                );
+        }
+
+
+        // GET SUBJECT GRADE
+
+        function getSubjectGrade(index, subject) {
+
+            // MANUAL GRADE TAKES PRIORITY
+
+            const manualGrade =
+                localStorage.getItem(getManualGradeKey(index));
+
+            if (manualGrade !== null) {
+
+                const grade = Number(manualGrade);
+
+                if (
+                    Number.isFinite(grade) &&
+                    grade >= 0 &&
+                    grade <= 100
+                ) {
+                    return grade;
+                }
+            }
+
+
+            // OTHERWISE, CALCULATE FROM ASSESSMENTS
+
+            const componentKey =
+                "aralyticsComponents_G" + currentGrade +
+                "_S" + currentSemester +
+                "_" + currentPeriod +
+                "_Subject" + index;
+
+            const assessmentKey =
+                "aralyticsAssessments_G" + currentGrade +
+                "_S" + currentSemester +
+                "_" + currentPeriod +
+                "_Subject" + index;
+
+
+            const savedComponents =
+                localStorage.getItem(componentKey);
+
+            const savedAssessments =
+                localStorage.getItem(assessmentKey);
+
+            if (!savedComponents) return null;
+
+
+            const components = JSON.parse(savedComponents);
+
+            const assessments = savedAssessments
+                ? JSON.parse(savedAssessments)
+                : {};
+
+
+            let weightedTotal = 0;
+            let gradedWeight = 0;
+
+
+            components.forEach((component, componentIndex) => {
+
+                const componentAssessments =
+                    assessments[componentIndex] || [];
+
+                let totalEarned = 0;
+                let totalPossible = 0;
+
+
+                componentAssessments.forEach(assessment => {
+
+                    if (
+                        assessment.earned !== "" &&
+                        assessment.possible !== "" &&
+                        assessment.earned !== undefined &&
+                        assessment.possible !== undefined
+                    ) {
+
+                        const earned = Number(assessment.earned);
+                        const possible = Number(assessment.possible);
+
+                        if (
+                            Number.isFinite(earned) &&
+                            Number.isFinite(possible) &&
+                            possible > 0 &&
+                            earned >= 0 &&
+                            earned <= possible
+                        ) {
+
+                            totalEarned += earned;
+                            totalPossible += possible;
+
+                        }
+                    }
+
+                });
+
+
+                if (totalPossible > 0) {
+
+                    const average =
+                        (totalEarned / totalPossible) * 100;
+
+                    const weight = Number(component.weight);
+
+                    if (Number.isFinite(weight) && weight > 0) {
+
+                        weightedTotal += average * weight;
+                        gradedWeight += weight;
+
+                    }
+
+                }
+
+            });
+
+
+            if (gradedWeight === 0) return null;
+
+            return weightedTotal / gradedWeight;
+
+        }
+
+
+        // SUBJECT UNITS
+
+        function getSubjectUnits(subject) {
+
+            const key =
+                "aralyticsSubjectUnits_G" + currentGrade +
+                "_S" + currentSemester +
+                "_" + encodeURIComponent(
+                    subject.name.trim().toLowerCase()
+                );
+
+            const savedUnits = localStorage.getItem(key);
+
+            const units = savedUnits !== null
+                ? Number(savedUnits)
+                : Number(subject.units);
+
+            return Number.isFinite(units) && units > 0
+                ? units
+                : 0;
+
+        }
+
+
+        // GOAL STORAGE KEY
+
+        function getSubjectGoalKey(subject) {
+
+            return "aralyticsGoal_G" + currentGrade +
+                "_S" + currentSemester +
+                "_" + currentPeriod +
+                "_" + encodeURIComponent(
+                    subject.name.trim().toLowerCase()
+                );
+
+        }
+
+
+        // GWA GOAL STORAGE KEY
+
+        function getGWAGoalKey() {
+
+            return "aralyticsGWAGoal_G" + currentGrade +
+                "_S" + currentSemester +
+                "_" + currentPeriod;
+
+        }
+
+
+        // CALCULATE CURRENT GWA
+
+        function calculateCurrentGWA(subjects) {
+
+            let weightedTotal = 0;
+            let totalUnits = 0;
+
+            subjects.forEach((subject, index) => {
+
+                const grade = getSubjectGrade(index, subject);
+                const units = getSubjectUnits(subject);
+
+                if (
+                    grade !== null &&
+                    Number.isFinite(grade) &&
+                    units > 0
+                ) {
+
+                    weightedTotal += grade * units;
+                    totalUnits += units;
+
+                }
+
+            });
+
+            if (totalUnits === 0) return null;
+
+            return weightedTotal / totalUnits;
+
+        }
+
+
+        // DISPLAY GWA GOAL
+
+        function displayGWAGoal(subjects) {
+
+            const currentGWA =
+                calculateCurrentGWA(subjects);
+
+            const currentElement =
+                document.getElementById("currentGWA");
+
+            const targetElement =
+                document.getElementById("targetGWA");
+
+            const input =
+                document.getElementById("gwaTargetInput");
+
+            const progress =
+                document.getElementById("gwaProgress");
+
+
+            if (currentGWA === null) {
+
+                currentElement.textContent = "—";
+                progress.innerHTML =
+                    '<p class="goal-progress-text">Record grades in your gradebooks to calculate your GWA.</p>';
+
+            } else {
+
+                currentElement.textContent =
+                    currentGWA.toFixed(2);
+
+            }
+
+
+            const savedTarget =
+                localStorage.getItem(getGWAGoalKey());
+
+            if (savedTarget !== null) {
+
+                targetElement.textContent =
+                    Number(savedTarget).toFixed(2);
+
+                input.value = savedTarget;
+
+                if (currentGWA !== null) {
+
+                    displayProgress(
+                        progress,
+                        currentGWA,
+                        Number(savedTarget)
+                    );
+
+                }
+
+            } else {
+
+                targetElement.textContent = "Not Set";
+                progress.innerHTML =
+                    '<p class="goal-progress-text">Set a target GWA to start tracking your progress.</p>';
+
+            }
+
+        }
+
+
+        // SAVE GWA TARGET
+
+        function saveGWATarget() {
+
+            const input =
+                document.getElementById("gwaTargetInput");
+
+            const feedback =
+                document.getElementById("gwaFeedback");
+
+            const target = Number(input.value);
+
+            if (
+                input.value.trim() === "" ||
+                !Number.isFinite(target) ||
+                target < 0 ||
+                target > 100
+            ) {
+
+                feedback.style.color = "#C87575";
+                feedback.textContent =
+                    "Please enter a target between 0 and 100.";
+
+                return;
+
+            }
+
+            localStorage.setItem(
+                getGWAGoalKey(),
+                target.toString()
+            );
+
+            feedback.style.color = "#559B91";
+            feedback.textContent = "GWA goal saved successfully.";
+
+            displayGWAGoal(getSubjects());
+
+        }
+
+
+        // DISPLAY PROGRESS
+
+        function displayProgress(container, current, target) {
+
+            let percentage = 0;
+
+            if (target > 0) {
+                percentage = (current / target) * 100;
+            } else if (current >= target) {
+                percentage = 100;
+            }
+
+            percentage = Math.min(100, Math.max(0, percentage));
+
+            const achieved = current >= target;
+
+            container.innerHTML = `
+                <div class="goal-progress-track">
+                    <div
+                        class="goal-progress-fill"
+                        style="width: ${percentage}%"
+                    ></div>
+                </div>
+
+                <p class="goal-progress-text">
+                    ${achieved
+                        ? "Target achieved!"
+                        : (target - current).toFixed(2) + " points away from your target."
+                    }
+                </p>
+            `;
+
+        }
+
+
+        // DISPLAY SUBJECT GOALS
+
+        function displaySubjectGoals() {
+
+            const subjects = getSubjects();
+
+            const container =
+                document.getElementById("subjectGoalsList");
+
+            container.innerHTML = "";
+
+            let tracked = 0;
+            let achieved = 0;
+
+
+            if (!validContext || subjects.length === 0) {
+
+                container.innerHTML = `
+                    <div class="goal-empty">
+                        No subjects found for this grading period.
+                        Add subjects in the Subjects section first.
+                    </div>
+                `;
+
+                document.getElementById("trackedSubjects").textContent = 0;
+                document.getElementById("achievedGoals").textContent = 0;
+
+                return;
+
+            }
+
+
+            subjects.forEach((subject, index) => {
+
+                const currentGrade =
+                    getSubjectGrade(index, subject);
+
+                const goalKey =
+                    getSubjectGoalKey(subject);
+
+                const savedTarget =
+                    localStorage.getItem(goalKey);
+
+                const target = savedTarget !== null
+                    ? Number(savedTarget)
+                    : null;
+
+
+                const card = document.createElement("div");
+
+                card.className = "goal-subject-card";
+
+
+                const header = document.createElement("div");
+                header.className = "goal-subject-header";
+
+
+                const information = document.createElement("div");
+
+                const title = document.createElement("h3");
+                title.textContent = subject.name;
+
+                const teacher = document.createElement("p");
+                teacher.textContent =
+                    subject.teacher || "Teacher not specified";
+
+                information.appendChild(title);
+                information.appendChild(teacher);
+
+
+                const gradeDisplay = document.createElement("div");
+                gradeDisplay.className = "goal-current-grade";
+
+                gradeDisplay.textContent =
+                    currentGrade === null
+                        ? "Not Graded"
+                        : currentGrade.toFixed(2) + "%";
+
+
+                header.appendChild(information);
+                header.appendChild(gradeDisplay);
+
+
+                // TARGET INPUT
+
+                const inputRow = document.createElement("div");
+                inputRow.className = "goal-input-row";
+
+
+              
+                const inputGroup = document.createElement("div");
+inputGroup.className = "goal-input-group";
+
+const label = document.createElement("label");
+label.textContent = "Target Grade (%)";
+
+const input = document.createElement("input");
+input.type = "number";
+input.min = "0";
+input.max = "100";
+input.step = "0.01";
+input.placeholder = "Enter target grade";
+input.value = savedTarget !== null
+    ? savedTarget
+    : "";
+
+inputGroup.appendChild(label);
+inputGroup.appendChild(input);
+
+
+                const saveButton = document.createElement("button");
+                saveButton.className = "goal-save-button";
+                saveButton.textContent = "Save Goal";
+
+
+                const progress = document.createElement("div");
+
+                const feedback = document.createElement("p");
+                feedback.className = "goal-feedback";
+
+
+                // SAVE SUBJECT GOAL
+
+                saveButton.onclick = () => {
+
+                    const value = input.value.trim();
+                    const newTarget = Number(value);
+
+                    if (
+                        value === "" ||
+                        !Number.isFinite(newTarget) ||
+                        newTarget < 0 ||
+                        newTarget > 100
+                    ) {
+
+                        feedback.style.color = "#C87575";
+                        feedback.textContent =
+                            "Please enter a target between 0 and 100.";
+
+                        return;
+
+                    }
+
+
+                    localStorage.setItem(
+                        goalKey,
+                        newTarget.toString()
+                    );
+
+                    feedback.style.color = "#559B91";
+                    feedback.textContent = "Goal saved successfully.";
+
+                    displaySubjectGoals();
+                    displayGWAGoal(getSubjects());
+
+                };
+
+
+                inputRow.appendChild(inputGroup);
+                inputRow.appendChild(saveButton);
+
+
+                // DISPLAY SAVED GOAL PROGRESS
+
+                if (target !== null && Number.isFinite(target)) {
+
+                    tracked++;
+
+                    if (currentGrade !== null && currentGrade >= target) {
+                        achieved++;
+                    }
+
+                    if (currentGrade !== null) {
+
+                        displayProgress(
+                            progress,
+                            currentGrade,
+                            target
+                        );
+
+                    } else {
+
+                        progress.innerHTML =
+                            '<p class="goal-progress-text">Your current grade will appear here once assessments are recorded.</p>';
+
+                    }
+
+                } else {
+
+                    progress.innerHTML =
+                        '<p class="goal-progress-text">Set a target to begin tracking this subject.</p>';
+
+                }
+
+
+                card.appendChild(header);
+                card.appendChild(inputRow);
+                card.appendChild(progress);
+                card.appendChild(feedback);
+
+                container.appendChild(card);
+
+            });
+
+
+            document.getElementById("trackedSubjects").textContent =
+                tracked;
+
+            document.getElementById("achievedGoals").textContent =
+                achieved;
+
+        }
+
+
+        // INITIALIZE GOALS PAGE
+
+        function initializeGoals() {
+
+            if (!validContext) {
+
+                document.getElementById("subjectGoalsList").innerHTML = `
+                    <div class="goal-empty">
+                        Please select your Grade Level, Semester, and Grading Period
+                        in the Subjects section before viewing your goals.
+                    </div>
+                `;
+
+                return;
+
+            }
+
+            const subjects = getSubjects();
+
+            displayGWAGoal(subjects);
+            displaySubjectGoals();
+
+        }
+
+
+        initializeGoals();
+
+    </script>
+
+</body>
+</html>

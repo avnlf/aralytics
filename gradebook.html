@@ -1,0 +1,806 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gradebook | Aralytics</title>
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        .gradebook-header {
+            margin-bottom: 20px;
+        }
+
+        .gradebook-context {
+            color: #7B897D;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .grade-summary {
+            position: sticky;
+            top: 12px;
+            z-index: 100;
+            background: #FFFFFF;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(53, 72, 59, 0.08);
+            margin-bottom: 28px;
+        }
+
+        .grade-summary h2 {
+            color: #35483B;
+            margin-bottom: 15px;
+        }
+
+        .grade-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .grade-summary-card {
+            background: #F8F8F2;
+            padding: 16px;
+            border-radius: 10px;
+        }
+
+        .grade-summary-card p {
+            color: #7B897D;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .grade-summary-card h3 {
+            color: #35483B;
+            font-size: 26px;
+            margin: 0;
+        }
+
+        @media (max-width: 600px) {
+            .grade-summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .assessment-average {
+            color: #35483B;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h2><a href="index.html">Aralytics</a></h2>
+
+        <nav>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="subjects.html">Subjects</a>
+            <a href="calculator.html">Calculator</a>
+            <a href="goals.html">Goals</a>
+        </nav>
+    </header>
+
+    <main class="dashboard">
+
+        <button class="back-button" onclick="history.back()">
+            ← Back to Subjects
+        </button>
+
+        <section class="welcome gradebook-header">
+            <p class="tagline">SUBJECT GRADEBOOK</p>
+
+            <h1 id="subjectName">Loading Subject...</h1>
+
+            <p id="subjectTeacher">Teacher: Not specified</p>
+
+            <p class="gradebook-context" id="gradebookContext">
+                Loading academic information...
+            </p>
+        </section>
+
+        <section class="grade-summary">
+
+            <h2>Grade Summary</h2>
+
+            <div class="grade-summary-grid">
+
+                <div class="grade-summary-card">
+                    <p>Current Grade</p>
+                    <h3 id="currentGrade">—</h3>
+                </div>
+
+                <div class="grade-summary-card">
+                    <p>Graded Assessments</p>
+                    <h3 id="gradedAssessments">0</h3>
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="grading-components">
+
+            <div class="section-heading">
+                <h2>Grading Components</h2>
+                <p>Customize how your subject grade is calculated.</p>
+            </div>
+
+            <div id="componentList"></div>
+
+            <div class="component-total">
+                <p>Total Weight</p>
+                <h3 id="totalWeight">0%</h3>
+                <p id="weightStatus">Add your grading components.</p>
+            </div>
+
+            <button class="add-button" onclick="addComponent()">
+                + Add Component
+            </button>
+
+        </section>
+
+        <section class="assessment-section">
+
+            <div class="section-heading">
+                <h2>Assessments</h2>
+                <p>Record and manage your assessment scores.</p>
+            </div>
+
+            <div id="assessmentList"></div>
+
+        </section>
+
+    </main>
+
+    <script>
+
+        // GET INFORMATION FROM THE URL
+
+        const params = new URLSearchParams(window.location.search);
+
+        const grade = params.get("grade");
+        const semester = params.get("semester");
+        const period = params.get("period");
+        const subjectIndex = Number(params.get("subjectIndex"));
+
+
+        // FIND THE SELECTED SUBJECT
+
+        const storageKey = "aralyticsSubjects_G" + grade +
+            "_S" + semester +
+            "_" + period;
+
+        const savedSubjects = localStorage.getItem(storageKey);
+
+        const subjects = savedSubjects ? JSON.parse(savedSubjects) : [];
+
+        const subject = subjects[subjectIndex];
+
+
+        // DISPLAY SUBJECT INFORMATION
+
+        if (grade && semester && period && subject) {
+
+            document.getElementById("subjectName").textContent =
+                subject.name;
+
+            document.getElementById("subjectTeacher").textContent =
+                "Teacher: " + (subject.teacher || "Not specified");
+
+            document.getElementById("gradebookContext").textContent =
+                "Grade " + grade +
+                " | Semester " + semester +
+                " | " + period;
+
+        } else {
+
+            document.getElementById("subjectName").textContent =
+                "Subject Not Found";
+
+            document.getElementById("subjectTeacher").textContent =
+                "We couldn't find this subject.";
+
+            document.getElementById("gradebookContext").textContent =
+                "Please return to your subject list and try again.";
+        }
+
+
+        // STORAGE KEYS
+
+        const componentStorageKey =
+            "aralyticsComponents_G" + grade +
+            "_S" + semester +
+            "_" + period +
+            "_Subject" + subjectIndex;
+
+        const assessmentStorageKey =
+            "aralyticsAssessments_G" + grade +
+            "_S" + semester +
+            "_" + period +
+            "_Subject" + subjectIndex;
+
+
+        // NEW: SUBJECT GRADE STORAGE KEY
+        // Uses the subject name so the saved grade is associated
+        // with the correct subject and grading period.
+
+        const subjectGradeStorageKey = subject
+            ? "aralyticsSubjectGrade_G" + grade +
+                "_S" + semester +
+                "_" + period +
+                "_" + encodeURIComponent(subject.name.trim().toLowerCase())
+            : null;
+
+
+        let components = [];
+        let assessments = {};
+
+
+        // LOAD AND SAVE ASSESSMENTS
+
+        function loadAssessments() {
+
+            const savedAssessments =
+                localStorage.getItem(assessmentStorageKey);
+
+            assessments = savedAssessments
+                ? JSON.parse(savedAssessments)
+                : {};
+
+            components.forEach((component, index) => {
+                if (!assessments[index]) {
+                    assessments[index] = [];
+                }
+            });
+        }
+
+        function saveAssessments() {
+
+            localStorage.setItem(
+                assessmentStorageKey,
+                JSON.stringify(assessments)
+            );
+        }
+
+
+        // LOAD AND SAVE COMPONENTS
+
+        function loadComponents() {
+
+            const savedComponents =
+                localStorage.getItem(componentStorageKey);
+
+            if (savedComponents) {
+
+                components = JSON.parse(savedComponents);
+
+            } else {
+
+                components = [
+                    { name: "Written Works", weight: 30 },
+                    { name: "Performance Tasks", weight: 40 },
+                    { name: "Examinations", weight: 30 }
+                ];
+
+                saveComponents();
+            }
+        }
+
+        function saveComponents() {
+
+            localStorage.setItem(
+                componentStorageKey,
+                JSON.stringify(components)
+            );
+        }
+
+
+        // NEW: SAVE CALCULATED SUBJECT GRADE
+
+        function saveSubjectGrade(
+            calculatedGrade,
+            assessmentCount,
+            weightValid
+        ) {
+
+            if (!subjectGradeStorageKey) {
+                return;
+            }
+
+            // If there are no graded assessments,
+            // remove any previously saved grade.
+
+            if (calculatedGrade === null) {
+
+                localStorage.removeItem(subjectGradeStorageKey);
+                return;
+            }
+
+            const gradeRecord = {
+                grade: calculatedGrade,
+                gradedAssessments: assessmentCount,
+                weightValid: weightValid,
+                updatedAt: new Date().toISOString()
+            };
+
+            localStorage.setItem(
+                subjectGradeStorageKey,
+                JSON.stringify(gradeRecord)
+            );
+        }
+
+
+        // DISPLAY GRADING COMPONENTS
+
+        function displayComponents() {
+
+            const componentList =
+                document.getElementById("componentList");
+
+            componentList.innerHTML = "";
+
+            components.forEach((component, index) => {
+
+                const item = document.createElement("div");
+                item.className = "component-item";
+
+                const nameInput = document.createElement("input");
+                nameInput.type = "text";
+                nameInput.value = component.name;
+                nameInput.placeholder = "Component name";
+
+                nameInput.onchange = () => {
+
+                    components[index].name =
+                        nameInput.value.trim();
+
+                    saveComponents();
+                    displayAssessmentGroups();
+                };
+
+                const weightInput = document.createElement("input");
+                weightInput.type = "number";
+                weightInput.className = "component-weight";
+                weightInput.min = "0";
+                weightInput.max = "100";
+                weightInput.value = component.weight;
+
+                weightInput.onchange = () => {
+
+                    const value = Number(weightInput.value);
+
+                    if (
+                        value < 0 ||
+                        value > 100 ||
+                        weightInput.value === ""
+                    ) {
+
+                        alert("Please enter a percentage between 0 and 100.");
+
+                        weightInput.value = components[index].weight;
+                        return;
+                    }
+
+                    components[index].weight = value;
+
+                    saveComponents();
+                    updateTotalWeight();
+                    displayAssessmentGroups();
+                };
+
+                const deleteButton = document.createElement("button");
+                deleteButton.className = "delete-component";
+                deleteButton.textContent = "×";
+                deleteButton.title = "Remove component";
+
+                deleteButton.onclick = () => {
+
+                    components.splice(index, 1);
+
+                    saveComponents();
+                    displayComponents();
+                };
+
+                item.appendChild(nameInput);
+                item.appendChild(weightInput);
+                item.appendChild(deleteButton);
+
+                componentList.appendChild(item);
+            });
+
+            updateTotalWeight();
+            displayAssessmentGroups();
+        }
+
+
+        // DISPLAY ASSESSMENT GROUPS
+
+        function displayAssessmentGroups() {
+
+            const assessmentList =
+                document.getElementById("assessmentList");
+
+            assessmentList.innerHTML = "";
+
+            components.forEach((component, index) => {
+
+                const group = document.createElement("div");
+                group.className = "assessment-component";
+
+                const header = document.createElement("div");
+                header.className = "assessment-component-header";
+
+                const title = document.createElement("h3");
+                title.textContent = component.name;
+
+                const weight = document.createElement("p");
+                weight.textContent =
+                    "Component Weight: " + component.weight + "%";
+
+                const average = document.createElement("p");
+                average.className = "assessment-average";
+                average.id = "componentAverage" + index;
+                average.textContent = "Component Average: —";
+
+                header.appendChild(title);
+                header.appendChild(weight);
+                header.appendChild(average);
+
+                const tableWrapper = document.createElement("div");
+                tableWrapper.className = "assessment-table-wrapper";
+
+                const table = document.createElement("table");
+                table.className = "assessment-table";
+
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Assessment</th>
+                            <th>Date</th>
+                            <th>Points Earned</th>
+                            <th>Points Possible</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                `;
+
+                const tbody = table.querySelector("tbody");
+
+                if (!assessments[index]) {
+                    assessments[index] = [];
+                }
+
+                // DISPLAY EXISTING ASSESSMENTS
+
+                assessments[index].forEach((assessment, assessmentIndex) => {
+
+                    const row = document.createElement("tr");
+
+                    // Assessment name
+
+                    const nameCell = document.createElement("td");
+                    const nameInput = document.createElement("input");
+
+                    nameInput.type = "text";
+                    nameInput.placeholder = "e.g. Quiz 1";
+                    nameInput.value = assessment.name;
+
+                    nameInput.onchange = () => {
+
+                        assessment.name = nameInput.value;
+                        saveAssessments();
+                    };
+
+                    nameCell.appendChild(nameInput);
+
+
+                    // Date
+
+                    const dateCell = document.createElement("td");
+                    const dateInput = document.createElement("input");
+
+                    dateInput.type = "date";
+                    dateInput.value = assessment.date;
+
+                    dateInput.onchange = () => {
+
+                        assessment.date = dateInput.value;
+                        saveAssessments();
+                    };
+
+                    dateCell.appendChild(dateInput);
+
+
+                    // Points earned
+
+                    const earnedCell = document.createElement("td");
+                    const earnedInput = document.createElement("input");
+
+                    earnedInput.type = "number";
+                    earnedInput.min = "0";
+                    earnedInput.placeholder = "0";
+                    earnedInput.value = assessment.earned;
+
+                    earnedInput.onchange = () => {
+
+                        assessment.earned = earnedInput.value;
+
+                        saveAssessments();
+                        updateComponentAverages();
+                    };
+
+                    earnedCell.appendChild(earnedInput);
+
+
+                    // Points possible
+
+                    const possibleCell = document.createElement("td");
+                    const possibleInput = document.createElement("input");
+
+                    possibleInput.type = "number";
+                    possibleInput.min = "0";
+                    possibleInput.placeholder = "0";
+                    possibleInput.value = assessment.possible;
+
+                    possibleInput.onchange = () => {
+
+                        assessment.possible = possibleInput.value;
+
+                        saveAssessments();
+                        updateComponentAverages();
+                    };
+
+                    possibleCell.appendChild(possibleInput);
+
+
+                    // Delete assessment
+
+                    const deleteCell = document.createElement("td");
+                    const deleteButton = document.createElement("button");
+
+                    deleteButton.className = "assessment-delete";
+                    deleteButton.textContent = "×";
+                    deleteButton.title = "Delete assessment";
+
+                    deleteButton.onclick = () => {
+
+                        assessments[index].splice(assessmentIndex, 1);
+
+                        saveAssessments();
+                        displayAssessmentGroups();
+                    };
+
+                    deleteCell.appendChild(deleteButton);
+
+
+                    row.appendChild(nameCell);
+                    row.appendChild(dateCell);
+                    row.appendChild(earnedCell);
+                    row.appendChild(possibleCell);
+                    row.appendChild(deleteCell);
+
+                    tbody.appendChild(row);
+                });
+
+
+                // ADD ASSESSMENT BUTTON
+
+                const actions = document.createElement("div");
+                actions.className = "assessment-actions";
+
+                const addButton = document.createElement("button");
+                addButton.className = "add-button";
+                addButton.textContent = "+ Add Assessment";
+
+                addButton.onclick = () => {
+                    addAssessment(index);
+                };
+
+                actions.appendChild(addButton);
+
+                tableWrapper.appendChild(table);
+
+                group.appendChild(header);
+                group.appendChild(tableWrapper);
+                group.appendChild(actions);
+
+                assessmentList.appendChild(group);
+            });
+
+            updateComponentAverages();
+        }
+
+
+        // ADD ASSESSMENT
+
+        function addAssessment(componentIndex) {
+
+            if (!assessments[componentIndex]) {
+                assessments[componentIndex] = [];
+            }
+
+            assessments[componentIndex].push({
+                name: "",
+                date: "",
+                earned: "",
+                possible: ""
+            });
+
+            saveAssessments();
+            displayAssessmentGroups();
+        }
+
+
+        // CALCULATE COMPONENT AVERAGES
+        // ALSO SAVE THE SUBJECT GRADE FOR GWA
+
+        function updateComponentAverages() {
+
+            let weightedTotal = 0;
+            let gradedWeight = 0;
+            let gradedAssessmentCount = 0;
+
+            components.forEach((component, index) => {
+
+                const componentAssessments = assessments[index] || [];
+
+                let totalEarned = 0;
+                let totalPossible = 0;
+
+                componentAssessments.forEach(assessment => {
+
+                    if (
+                        assessment.earned !== "" &&
+                        assessment.possible !== "" &&
+                        Number(assessment.possible) > 0
+                    ) {
+
+                        const earned = Number(assessment.earned);
+                        const possible = Number(assessment.possible);
+
+                        if (
+                            Number.isFinite(earned) &&
+                            Number.isFinite(possible) &&
+                            earned >= 0 &&
+                            earned <= possible
+                        ) {
+
+                            totalEarned += earned;
+                            totalPossible += possible;
+
+                            gradedAssessmentCount++;
+                        }
+                    }
+                });
+
+                const averageElement =
+                    document.getElementById("componentAverage" + index);
+
+                if (!averageElement) return;
+
+                if (totalPossible > 0) {
+
+                    const average = (totalEarned / totalPossible) * 100;
+
+                    averageElement.textContent =
+                        "Component Average: " + average.toFixed(2) + "%";
+
+                    weightedTotal += average * component.weight;
+                    gradedWeight += component.weight;
+
+                } else {
+
+                    averageElement.textContent = "Component Average: —";
+                }
+            });
+
+
+            // CALCULATE OVERALL SUBJECT GRADE
+
+            const currentGradeElement =
+                document.getElementById("currentGrade");
+
+            let calculatedGrade = null;
+
+            if (gradedWeight > 0) {
+
+                calculatedGrade = weightedTotal / gradedWeight;
+
+                currentGradeElement.textContent =
+                    calculatedGrade.toFixed(2) + "%";
+
+            } else {
+
+                currentGradeElement.textContent = "—";
+            }
+
+
+            // UPDATE GRADED ASSESSMENTS COUNT
+
+            document.getElementById("gradedAssessments").textContent =
+                gradedAssessmentCount;
+
+
+            // CHECK WHETHER THE CONFIGURED WEIGHTS TOTAL 100%
+
+            const totalConfiguredWeight = components.reduce(
+                (sum, component) => sum + Number(component.weight),
+                0
+            );
+
+            const weightValid =
+                Math.abs(totalConfiguredWeight - 100) < 0.000001;
+
+
+            // SAVE THE SUBJECT GRADE FOR THE GWA SCREEN
+
+            saveSubjectGrade(
+                calculatedGrade,
+                gradedAssessmentCount,
+                weightValid
+            );
+        }
+
+
+        // ADD GRADING COMPONENT
+
+        function addComponent() {
+
+            components.push({
+                name: "New Component",
+                weight: 0
+            });
+
+            saveComponents();
+            displayComponents();
+        }
+
+
+        // UPDATE TOTAL WEIGHT
+
+        function updateTotalWeight() {
+
+            const total = components.reduce(
+                (sum, component) => sum + Number(component.weight),
+                0
+            );
+
+            document.getElementById("totalWeight").textContent =
+                total + "%";
+
+            const status =
+                document.getElementById("weightStatus");
+
+            if (Math.abs(total - 100) < 0.000001) {
+
+                status.textContent =
+                    "Your grading weights are valid.";
+
+                status.style.color = "#559B91";
+
+            } else {
+
+                status.textContent =
+                    "Your grading weights must equal 100%.";
+
+                status.style.color = "#C87575";
+            }
+        }
+
+
+        // INITIALIZE GRADEBOOK
+
+        loadComponents();
+        loadAssessments();
+        displayComponents();
+
+    </script>
+
+</body>
+</html>

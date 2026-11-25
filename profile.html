@@ -1,0 +1,117 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Profile | Aralytics</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header>
+        <h2><a href="index.html">Aralytics</a></h2>
+        <nav>
+            <a href="index.html">Home</a>
+        </nav>
+    </header>
+
+    <main class="login-container">
+
+        <div class="login-card">
+
+            <h1>Create Your Profile</h1>
+
+            <p class="login-description">
+                Tell us a little about yourself so we can personalize your academic dashboard.
+            </p>
+
+            <form id="profileForm">
+
+                <label for="fullName">Full Name</label>
+                <input
+                    type="text"
+                    id="fullName"
+                    placeholder="Enter your full name"
+                    required
+                >
+
+                <label for="gradeLevel">Grade Level</label>
+                <select id="gradeLevel" required>
+                    <option value="">Select Grade Level</option>
+                    <option value="7">Grade 7</option>
+                    <option value="8">Grade 8</option>
+                    <option value="9">Grade 9</option>
+                    <option value="10">Grade 10</option>
+                    <option value="11">Grade 11</option>
+                    <option value="12">Grade 12</option>
+                </select>
+
+                <label for="semester">Current Semester</label>
+                <select id="semester" required>
+                    <option value="">Select Semester</option>
+                    <option value="1">Semester 1</option>
+                    <option value="2">Semester 2</option>
+                </select>
+
+                <label for="period">Current Grading Period</label>
+                <select id="period" required>
+                    <option value="">Select Grading Period</option>
+                    <option value="Midterms">Midterms</option>
+                    <option value="Finals">Finals</option>
+                </select>
+
+                <button type="submit" class="login-button">
+                    Save Profile
+                </button>
+
+            </form>
+
+            <p class="register-text">
+                Already have a profile?
+                <a href="login.html">Log In</a>
+            </p>
+
+        </div>
+
+    </main>
+
+    <script>
+
+        document.getElementById("profileForm").addEventListener("submit", function(event) {
+
+            event.preventDefault();
+
+            const profile = {
+                fullName: document.getElementById("fullName").value.trim(),
+                grade: document.getElementById("gradeLevel").value,
+                semester: document.getElementById("semester").value,
+                period: document.getElementById("period").value
+            };
+
+            if (!profile.fullName || !profile.grade ||
+                !profile.semester || !profile.period) {
+
+                alert("Please complete all fields.");
+                return;
+            }
+
+            localStorage.setItem(
+                "aralyticsUserProfile",
+                JSON.stringify(profile)
+            );
+
+            localStorage.setItem("aralyticsCurrentGrade", profile.grade);
+            localStorage.setItem("aralyticsCurrentSemester", profile.semester);
+            localStorage.setItem("aralyticsCurrentPeriod", profile.period);
+
+            alert("Your profile has been saved!");
+
+            window.location.href = "dashboard.html";
+
+        });
+
+    </script>
+
+</body>
+</html>
