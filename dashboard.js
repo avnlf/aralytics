@@ -1,3 +1,4 @@
+
 // ==========================================
 // ARALYTICS DASHBOARD CHARTS - SUPABASE
 // ==========================================
@@ -12,40 +13,40 @@ async function initializeDashboardCharts() {
 
     try {
         const context = db.getAcademicContext();
-
         const chartGrade = Number(context.grade_level);
 
-        if (!chartGrade) {
-            console.error("Academic grade level is missing.");
-            return;
+        // ==========================================
+        // GET SUBJECTS FOR ALL SEMESTERS AND PERIODS
+        // ==========================================
+
+        const contexts = [];
+
+        for (const semester of [1, 2]) {
+            for (const period of ["Midterms", "Finals"]) {
+                contexts.push({
+                    grade_level: chartGrade,
+                    semester: semester,
+                    grading_period: period
+                });
+            }
         }
 
+        const subjectGroups = await Promise.all(
+            contexts.map(item => db.getSubjects(item))
+        );
+
+        const allSubjects = subjectGroups.flat();
+
         // ==========================================
-        // GET ALL SUBJECTS FOR BOTH SEMESTERS
+        // GET SAVED GRADES
         // ==========================================
-
-        const semester1Subjects =
-            await db.getSubjectsForSemester(chartGrade, 1);
-
-        const semester2Subjects =
-            await db.getSubjectsForSemester(chartGrade, 2);
-
-        const allSubjects = [
-            ...(semester1Subjects || []),
-            ...(semester2Subjects || [])
-        ];
 
         const subjectIds = allSubjects.map(subject => subject.id);
-
-        // ==========================================
-        // GET SAVED SUBJECT GRADES
-        // ==========================================
-
         const savedGrades = await db.getSubjectGrades(subjectIds);
 
         const gradeMap = new Map();
 
-        (savedGrades || []).forEach(record => {
+        savedGrades.forEach(record => {
             gradeMap.set(record.subject_id, record);
         });
 
@@ -58,7 +59,6 @@ async function initializeDashboardCharts() {
 
             if (!record) return null;
 
-            // Manual grade takes priority.
             const savedGrade =
                 record.manual_grade !== null
                     ? record.manual_grade
@@ -96,9 +96,7 @@ async function initializeDashboardCharts() {
                     grade === null ||
                     !Number.isFinite(units) ||
                     units <= 0
-                ) {
-                    return;
-                }
+                ) return;
 
                 weightedTotal += grade * units;
                 totalUnits += units;
@@ -125,14 +123,10 @@ async function initializeDashboardCharts() {
             );
 
             const midtermWeight =
-                chartGrade >= 7 && chartGrade <= 10
-                    ? 1 / 3
-                    : 0.5;
+                chartGrade <= 10 ? 1 / 3 : 0.5;
 
             const finalsWeight =
-                chartGrade >= 7 && chartGrade <= 10
-                    ? 2 / 3
-                    : 0.5;
+                chartGrade <= 10 ? 2 / 3 : 0.5;
 
             let weightedTotal = 0;
             let totalUnits = 0;
@@ -143,25 +137,19 @@ async function initializeDashboardCharts() {
                     midtermSubject.subject_name.trim().toLowerCase()
                 );
 
-                // The subject must exist in both periods.
                 if (!matchingFinalsSubject) return;
 
                 const midtermGrade = getSubjectGrade(midtermSubject);
                 const finalsGrade = getSubjectGrade(matchingFinalsSubject);
 
-                // Both periods must have grades.
                 if (
                     midtermGrade === null ||
                     finalsGrade === null
-                ) {
-                    return;
-                }
+                ) return;
 
                 const units = Number(midtermSubject.units);
 
-                if (!Number.isFinite(units) || units <= 0) {
-                    return;
-                }
+                if (!Number.isFinite(units) || units <= 0) return;
 
                 const semesterGrade =
                     midtermGrade * midtermWeight +
@@ -204,14 +192,11 @@ async function initializeDashboardCharts() {
 
             new Chart(performanceCanvas, {
                 type: "bar",
-
                 data: {
                     labels: chartLabels,
-
                     datasets: [{
                         label: "Subject Grades",
                         data: chartGrades,
-
                         backgroundColor: [
                             "#78977B",
                             "#A8C9C0",
@@ -220,37 +205,26 @@ async function initializeDashboardCharts() {
                             "#D9A45B",
                             "#C87575"
                         ],
-
                         borderRadius: 8
                     }]
                 },
-
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-
                     scales: {
                         y: {
                             beginAtZero: true,
                             max: 100,
-
-                            ticks: {
-                                stepSize: 10
-                            }
+                            ticks: { stepSize: 10 }
                         }
                     },
-
                     plugins: {
-                        legend: {
-                            display: false
-                        },
-
+                        legend: { display: false },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
-                                    return "Grade: " +
-                                        context.parsed.y.toFixed(2);
-                                }
+                                label: context =>
+                                    "Grade: " +
+                                    context.parsed.y.toFixed(2)
                             }
                         }
                     }
@@ -286,43 +260,31 @@ async function initializeDashboardCharts() {
 
             new Chart(progressCanvas, {
                 type: "line",
-
                 data: {
                     labels: progressLabels,
-
                     datasets: [{
                         label: "Academic Average",
                         data: progressGrades,
-
                         borderColor: "#78977B",
                         backgroundColor: "rgba(120, 151, 123, 0.15)",
-
                         fill: true,
                         tension: 0.3,
-
                         pointRadius: 5,
                         pointHoverRadius: 8,
-
                         spanGaps: false
                     }]
                 },
-
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-
                     scales: {
                         y: {
                             beginAtZero: false,
                             min: 0,
                             max: 100,
-
-                            ticks: {
-                                stepSize: 10
-                            }
+                            ticks: { stepSize: 10 }
                         }
                     },
-
                     plugins: {
                         tooltip: {
                             callbacks: {
@@ -344,7 +306,6 @@ async function initializeDashboardCharts() {
         console.error("Dashboard chart loading error:", error);
     }
 }
-
 
 // ==========================================
 // START DASHBOARD CHARTS
