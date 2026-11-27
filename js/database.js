@@ -1,6 +1,8 @@
 
-// Aralytics Database Helper
-// Handles Supabase operations for subjects, gradebooks, assessments, and grades.
+/* =========================================
+   ARALYTICS DATABASE HELPER
+   Supabase academic data operations
+========================================= */
 
 (function () {
     const supabase = window.supabaseClient;
@@ -10,7 +12,9 @@
         return;
     }
 
-    // AUTHENTICATION
+    /* =========================================
+       AUTHENTICATION AND ACADEMIC CONTEXT
+    ========================================= */
 
     async function getCurrentUser() {
         const { data, error } = await supabase.auth.getUser();
@@ -23,9 +27,6 @@
 
         return data.user;
     }
-
-
-    // ACADEMIC CONTEXT
 
     function getAcademicContext() {
         const grade = Number(
@@ -57,8 +58,13 @@
         };
     }
 
+    function normalizeSubjectName(name) {
+        return String(name || "").trim().toLowerCase();
+    }
 
-    // SUBJECTS
+    /* =========================================
+       SUBJECTS
+    ========================================= */
 
     async function getSubjects(context = getAcademicContext()) {
         const user = await getCurrentUser();
@@ -74,26 +80,8 @@
 
         if (error) throw error;
 
-        return data || [];
+        return data;
     }
-
-
-    async function getSubjectsForSemester(grade, semester) {
-        const user = await getCurrentUser();
-
-        const { data, error } = await supabase
-            .from("subjects")
-            .select("*")
-            .eq("user_id", user.id)
-            .eq("grade_level", grade)
-            .eq("semester", semester)
-            .order("created_at", { ascending: true });
-
-        if (error) throw error;
-
-        return data || [];
-    }
-
 
     async function getSubjectById(subjectId) {
         await getCurrentUser();
@@ -102,38 +90,42 @@
             .from("subjects")
             .select("*")
             .eq("id", subjectId)
-            .maybeSingle();
+            .single();
 
         if (error) throw error;
 
         return data;
     }
 
-
-    async function addSubject(subject, context = getAcademicContext()) {
+    async function addSubject(subject) {
         const user = await getCurrentUser();
+        const context = getAcademicContext();
 
         const name = String(subject.subject_name || "").trim();
+        const teacher = String(subject.teacher || "").trim();
+        const units = Number(subject.units);
 
         if (!name) {
             throw new Error("Subject name is required.");
         }
 
-        const units = Number(subject.units);
-
         if (!Number.isFinite(units) || units <= 0) {
-            throw new Error("Subject units must be greater than zero.");
+            throw new Error(
+                "Subject units must be greater than zero."
+            );
         }
 
-        // Prevent duplicate subjects in the same grading period.
         const existingSubjects = await getSubjects(context);
 
         const duplicate = existingSubjects.some(item =>
-            item.subject_name.trim().toLowerCase() === name.toLowerCase()
+            normalizeSubjectName(item.subject_name) ===
+            normalizeSubjectName(name)
         );
 
         if (duplicate) {
-            throw new Error("This subject already exists.");
+            throw new Error(
+                "This subject has already been added."
+            );
         }
 
         const { data, error } = await supabase
@@ -142,7 +134,7 @@
                 user_id: user.id,
                 ...context,
                 subject_name: name,
-                teacher: subject.teacher || "",
+                teacher: teacher,
                 units: units
             })
             .select()
@@ -153,15 +145,8 @@
         return data;
     }
 
-
     async function updateSubject(subjectId, changes) {
         await getCurrentUser();
-
-        const existing = await getSubjectById(subjectId);
-
-        if (!existing) {
-            throw new Error("Subject not found.");
-        }
 
         const allowedChanges = {};
 
@@ -169,24 +154,33 @@
             const name = String(changes.subject_name).trim();
 
             if (!name) {
-                throw new Error("Subject name cannot be empty.");
+                throw new Error(
+                    "Subject name cannot be empty."
+                );
             }
 
             allowedChanges.subject_name = name;
         }
 
         if (changes.teacher !== undefined) {
-            allowedChanges.teacher = changes.teacher;
+            allowedChanges.teacher =
+                String(changes.teacher).trim();
         }
 
         if (changes.units !== undefined) {
             const units = Number(changes.units);
 
             if (!Number.isFinite(units) || units <= 0) {
-                throw new Error("Subject units must be greater than zero.");
+                throw new Error(
+                    "Subject units must be greater than zero."
+                );
             }
 
             allowedChanges.units = units;
+        }
+
+        if (Object.keys(allowedChanges).length === 0) {
+            return null;
         }
 
         allowedChanges.updated_at = new Date().toISOString();
@@ -200,31 +194,67 @@
 
         if (error) throw error;
 
-        // Keep units consistent between Midterms and Finals
-        // for the same subject, grade level, and semester.
-        if (changes.units !== undefined) {
-            const otherPeriod =
-                existing.grading_period === "Midterms"
-                    ? "Finals"
-                    : "Midterms";
-
-            const { error: syncError } = await supabase
-                .from("subjects")
-                .update({
-                    units: Number(changes.units),
-                    updated_at: new Date().toISOString()
-                })
-                .eq("grade_level", existing.grade_level)
-                .eq("semester", existing.semester)
-                .eq("grading_period", otherPeriod)
-                .ilike("subject_name", existing.subject_name);
-
-            if (syncError) throw syncError;
-        }
-
         return data;
     }
 
+    /*
+       Subject units are shared between Midterms
+       and Finals within the same grade and semester.
+    */
+
+    async function updateSharedSubjectUnits(subjectId, units) {
+        const user = await getCurrentUser();
+
+        const numericUnits = Number(units);
+
+        if (
+            !Number.isFinite(numericUnits) ||
+            numericUnits <= 0
+        ) {
+            throw new Error(
+                "Subject units must be greater than zero."
+            );
+        }
+
+        const subject = await getSubjectById(subjectId);
+
+        const { data: allSubjects, error: fetchError } =
+            await supabase
+                .from("subjects")
+                .select("id, subject_name")
+                .eq("user_id", user.id)
+                .eq("grade_level", subject.grade_level)
+                .eq("semester", subject.semester);
+
+        if (fetchError) throw fetchError;
+
+        const matchingIds = allSubjects
+            .filter(item =>
+                normalizeSubjectName(item.subject_name) ===
+                normalizeSubjectName(subject.subject_name)
+            )
+            .map(item => item.id);
+
+        if (matchingIds.length === 0) {
+            throw new Error(
+                "No matching subject records were found."
+            );
+        }
+
+        const { data, error } = await supabase
+            .from("subjects")
+            .update({
+                units: numericUnits,
+                updated_at: new Date().toISOString()
+            })
+            .eq("user_id", user.id)
+            .in("id", matchingIds)
+            .select();
+
+        if (error) throw error;
+
+        return data;
+    }
 
     async function deleteSubject(subjectId) {
         await getCurrentUser();
@@ -237,8 +267,9 @@
         if (error) throw error;
     }
 
-
-    // GRADING COMPONENTS
+    /* =========================================
+       GRADING COMPONENTS
+    ========================================= */
 
     async function getComponents(subjectId) {
         await getCurrentUser();
@@ -251,62 +282,63 @@
 
         if (error) throw error;
 
-        return data || [];
+        return data;
     }
 
-
-    async function addComponent(subjectId, component) {
+    async function saveComponents(subjectId, components) {
         const user = await getCurrentUser();
 
-        const { data, error } = await supabase
-            .from("grading_components")
-            .insert({
+        if (!Array.isArray(components)) {
+            throw new Error("Invalid grading components.");
+        }
+
+        const rows = components.map((component, index) => {
+            const name = String(
+                component.component_name || ""
+            ).trim();
+
+            const weight = Number(component.weight);
+
+            if (!name) {
+                throw new Error(
+                    "Every grading component needs a name."
+                );
+            }
+
+            if (
+                !Number.isFinite(weight) ||
+                weight < 0 ||
+                weight > 100
+            ) {
+                throw new Error(
+                    "Component weights must be between 0 and 100."
+                );
+            }
+
+            return {
+                ...(component.id ? { id: component.id } : {}),
                 user_id: user.id,
                 subject_id: subjectId,
-                component_name: component.component_name,
-                weight: Number(component.weight) || 0,
-                display_order: Number(component.display_order) || 0
-            })
-            .select()
-            .single();
+                component_name: name,
+                weight: weight,
+                display_order: index,
+                updated_at: new Date().toISOString()
+            };
+        });
 
-        if (error) throw error;
-
-        return data;
-    }
-
-
-    async function updateComponent(componentId, changes) {
-        await getCurrentUser();
-
-        const allowedChanges = {};
-
-        if (changes.component_name !== undefined) {
-            allowedChanges.component_name = changes.component_name;
+        if (rows.length === 0) {
+            return [];
         }
-
-        if (changes.weight !== undefined) {
-            allowedChanges.weight = Number(changes.weight);
-        }
-
-        if (changes.display_order !== undefined) {
-            allowedChanges.display_order = Number(changes.display_order);
-        }
-
-        allowedChanges.updated_at = new Date().toISOString();
 
         const { data, error } = await supabase
             .from("grading_components")
-            .update(allowedChanges)
-            .eq("id", componentId)
-            .select()
-            .single();
+            .upsert(rows, { onConflict: "id" })
+            .select();
 
         if (error) throw error;
 
         return data;
     }
-
 
     async function deleteComponent(componentId) {
         await getCurrentUser();
@@ -319,8 +351,9 @@
         if (error) throw error;
     }
 
-
-    // ASSESSMENTS
+    /* =========================================
+       ASSESSMENTS
+    ========================================= */
 
     async function getAssessments(componentId) {
         await getCurrentUser();
@@ -333,75 +366,88 @@
 
         if (error) throw error;
 
-        return data || [];
+        return data;
     }
 
-
-    async function addAssessment(componentId, assessment) {
+    async function saveAssessments(componentId, assessments) {
         const user = await getCurrentUser();
 
-        const { data, error } = await supabase
-            .from("assessments")
-            .insert({
+        if (!Array.isArray(assessments)) {
+            throw new Error("Invalid assessment data.");
+        }
+
+        const rows = assessments.map((assessment, index) => {
+            const earned =
+                assessment.points_earned === "" ||
+                assessment.points_earned === null ||
+                assessment.points_earned === undefined
+                    ? null
+                    : Number(assessment.points_earned);
+
+            const possible =
+                assessment.points_possible === "" ||
+                assessment.points_possible === null ||
+                assessment.points_possible === undefined
+                    ? null
+                    : Number(assessment.points_possible);
+
+            if (
+                earned !== null &&
+                (!Number.isFinite(earned) || earned < 0)
+            ) {
+                throw new Error(
+                    "Points earned must be a valid non-negative number."
+                );
+            }
+
+            if (
+                possible !== null &&
+                (!Number.isFinite(possible) || possible <= 0)
+            ) {
+                throw new Error(
+                    "Points possible must be greater than zero."
+                );
+            }
+
+            if (
+                earned !== null &&
+                possible !== null &&
+                earned > possible
+            ) {
+                throw new Error(
+                    "Points earned cannot exceed points possible."
+                );
+            }
+
+            return {
+                ...(assessment.id ? { id: assessment.id } : {}),
                 user_id: user.id,
                 component_id: componentId,
-                assessment_name: assessment.assessment_name || "",
-                assessment_date: assessment.assessment_date || null,
-                points_earned: assessment.points_earned ?? null,
-                points_possible: assessment.points_possible ?? null,
-                display_order: Number(assessment.display_order) || 0
-            })
-            .select()
-            .single();
+                assessment_name: String(
+                    assessment.assessment_name || ""
+                ).trim(),
+                assessment_date:
+                    assessment.assessment_date || null,
+                points_earned: earned,
+                points_possible: possible,
+                display_order: index,
+                updated_at: new Date().toISOString()
+            };
+        });
 
-        if (error) throw error;
-
-        return data;
-    }
-
-
-    async function updateAssessment(assessmentId, changes) {
-        await getCurrentUser();
-
-        const allowedChanges = {};
-
-        if (changes.assessment_name !== undefined) {
-            allowedChanges.assessment_name = changes.assessment_name;
+        if (rows.length === 0) {
+            return [];
         }
-
-        if (changes.assessment_date !== undefined) {
-            allowedChanges.assessment_date =
-                changes.assessment_date || null;
-        }
-
-        if (changes.points_earned !== undefined) {
-            allowedChanges.points_earned =
-                changes.points_earned === "" ? null : changes.points_earned;
-        }
-
-        if (changes.points_possible !== undefined) {
-            allowedChanges.points_possible =
-                changes.points_possible === "" ? null : changes.points_possible;
-        }
-
-        if (changes.display_order !== undefined) {
-            allowedChanges.display_order = Number(changes.display_order);
-        }
-
-        allowedChanges.updated_at = new Date().toISOString();
 
         const { data, error } = await supabase
             .from("assessments")
-            .update(allowedChanges)
-            .eq("id", assessmentId)
-            .select()
-            .single();
+            .upsert(rows, { onConflict: "id" })
+            .select();
 
         if (error) throw error;
 
         return data;
     }
-
 
     async function deleteAssessment(assessmentId) {
         await getCurrentUser();
@@ -414,8 +460,9 @@
         if (error) throw error;
     }
 
-
-    // SUBJECT GRADES
+    /* =========================================
+       SUBJECT GRADES
+    ========================================= */
 
     async function getSubjectGrade(subjectId) {
         await getCurrentUser();
@@ -431,60 +478,57 @@
         return data;
     }
 
+    /*
+       Retrieves multiple subject grades in one request.
+       Useful for period GWA and semester GWA.
+    */
 
     async function getSubjectGrades(subjectIds) {
         await getCurrentUser();
 
-        if (!subjectIds || subjectIds.length === 0) {
+        if (!Array.isArray(subjectIds) || subjectIds.length === 0) {
             return [];
         }
+
+        const uniqueIds = [...new Set(subjectIds)];
 
         const { data, error } = await supabase
             .from("subject_grades")
             .select("*")
-            .in("subject_id", subjectIds);
+            .in("subject_id", uniqueIds);
 
         if (error) throw error;
 
-        return data || [];
+        return data;
     }
 
-
-    async function saveSubjectGrade(subjectId, changes) {
+    async function saveSubjectGrade(subjectId, gradeData) {
         const user = await getCurrentUser();
 
-        // Preserve existing values when only one grade type changes.
-        const existing = await getSubjectGrade(subjectId);
+        const manualGrade =
+            gradeData.manual_grade === "" ||
+            gradeData.manual_grade === undefined
+                ? null
+                : gradeData.manual_grade;
 
-        const record = {
-            user_id: user.id,
-            subject_id: subjectId,
-            manual_grade: existing?.manual_grade ?? null,
-            calculated_grade: existing?.calculated_grade ?? null,
-            graded_assessments: existing?.graded_assessments ?? 0,
-            weight_valid: existing?.weight_valid ?? false,
-            updated_at: new Date().toISOString()
-        };
-
-        if (changes.manual_grade !== undefined) {
-            record.manual_grade = changes.manual_grade;
-        }
-
-        if (changes.calculated_grade !== undefined) {
-            record.calculated_grade = changes.calculated_grade;
-        }
-
-        if (changes.graded_assessments !== undefined) {
-            record.graded_assessments = changes.graded_assessments;
-        }
-
-        if (changes.weight_valid !== undefined) {
-            record.weight_valid = changes.weight_valid;
-        }
+        const calculatedGrade =
+            gradeData.calculated_grade === "" ||
+            gradeData.calculated_grade === undefined
+                ? null
+                : gradeData.calculated_grade;
 
         const { data, error } = await supabase
             .from("subject_grades")
-            .upsert(record, {
+            .upsert({
+                user_id: user.id,
+                subject_id: subjectId,
+                manual_grade: manualGrade,
+                calculated_grade: calculatedGrade,
+                graded_assessments:
+                    Number(gradeData.graded_assessments) || 0,
+                weight_valid: Boolean(gradeData.weight_valid),
+                updated_at: new Date().toISOString()
+            }, {
                 onConflict: "user_id,subject_id"
             })
             .select()
@@ -495,68 +539,173 @@
         return data;
     }
 
+    /* =========================================
+       ACADEMIC GOALS
+    ========================================= */
 
-    // COMPLETE GRADEBOOK DATA
+    async function getGoals(context = getAcademicContext()) {
+        const user = await getCurrentUser();
 
-    async function getGradebookData(subjectId) {
-        const subject = await getSubjectById(subjectId);
+        const { data, error } = await supabase
+            .from("academic_goals")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("grade_level", context.grade_level)
+            .eq("semester", context.semester)
+            .eq("grading_period", context.grading_period);
 
-        if (!subject) {
-            throw new Error("Subject not found.");
-        }
+        if (error) throw error;
 
-        const components = await getComponents(subjectId);
-
-        const componentsWithAssessments = await Promise.all(
-            components.map(async component => {
-                const assessments = await getAssessments(component.id);
-
-                return {
-                    ...component,
-                    assessments: assessments
-                };
-            })
-        );
-
-        const grade = await getSubjectGrade(subjectId);
-
-        return {
-            subject,
-            components: componentsWithAssessments,
-            grade
-        };
+        return data;
     }
 
+    /*
+       Find an existing goal before saving.
+       This handles the database's partial unique indexes
+       for subject goals and GWA goals.
+    */
 
-    // PUBLIC DATABASE FUNCTIONS
+    async function saveGoal(goal) {
+        const user = await getCurrentUser();
+
+        const goalType = goal.goal_type;
+        const targetGrade = Number(goal.target_grade);
+        const gradeLevel = Number(goal.grade_level);
+        const semester = Number(goal.semester);
+        const gradingPeriod = goal.grading_period;
+
+        if (!["subject", "gwa"].includes(goalType)) {
+            throw new Error("Invalid goal type.");
+        }
+
+        if (
+            !Number.isFinite(targetGrade) ||
+            targetGrade < 0 ||
+            targetGrade > 100
+        ) {
+            throw new Error(
+                "Target grade must be between 0 and 100."
+            );
+        }
+
+        if (
+            !Number.isInteger(gradeLevel) ||
+            gradeLevel < 7 ||
+            gradeLevel > 12 ||
+            ![1, 2].includes(semester) ||
+            !["Midterms", "Finals"].includes(gradingPeriod)
+        ) {
+            throw new Error("Invalid academic context.");
+        }
+
+        if (goalType === "subject" && !goal.subject_id) {
+            throw new Error(
+                "A subject must be selected for this goal."
+            );
+        }
+
+        let query = supabase
+            .from("academic_goals")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("goal_type", goalType)
+            .eq("grade_level", gradeLevel)
+            .eq("semester", semester)
+            .eq("grading_period", gradingPeriod);
+
+        if (goalType === "subject") {
+            query = query.eq("subject_id", goal.subject_id);
+        } else {
+            query = query.is("subject_id", null);
+        }
+
+        const { data: existingGoal, error: findError } =
+            await query.maybeSingle();
+
+        if (findError) throw findError;
+
+        const goalData = {
+            user_id: user.id,
+            goal_type: goalType,
+            subject_id:
+                goalType === "subject" ? goal.subject_id : null,
+            target_grade: targetGrade,
+            grade_level: gradeLevel,
+            semester: semester,
+            grading_period: gradingPeriod,
+            updated_at: new Date().toISOString()
+        };
+
+        let result;
+
+        if (existingGoal) {
+            result = await supabase
+                .from("academic_goals")
+                .update(goalData)
+                .eq("id", existingGoal.id)
+                .select()
+                .single();
+        } else {
+            result = await supabase
+                .from("academic_goals")
+                .insert(goalData)
+                .select()
+                .single();
+        }
+
+        if (result.error) throw result.error;
+
+        return result.data;
+    }
+
+    async function deleteGoal(goalId) {
+        await getCurrentUser();
+
+        const { error } = await supabase
+            .from("academic_goals")
+            .delete()
+            .eq("id", goalId);
+
+        if (error) throw error;
+    }
+
+    /* =========================================
+       PUBLIC API
+    ========================================= */
 
     window.aralyticsDB = {
         getCurrentUser,
         getAcademicContext,
 
+        // Subjects
         getSubjects,
-        getSubjectsForSemester,
         getSubjectById,
         addSubject,
         updateSubject,
+        updateSharedSubjectUnits,
         deleteSubject,
 
+        // Grading components
         getComponents,
-        addComponent,
-        updateComponent,
+        saveComponents,
         deleteComponent,
 
+        // Assessments
         getAssessments,
-        addAssessment,
-        updateAssessment,
+        saveAssessments,
         deleteAssessment,
 
+        // Subject grades
         getSubjectGrade,
         getSubjectGrades,
         saveSubjectGrade,
 
-        getGradebookData
+        // Academic goals
+        getGoals,
+        saveGoal,
+        deleteGoal
     };
 
-    console.log("Aralytics database helper loaded!");
+    console.log("Aralytics database helper loaded successfully!");
+
 })();
