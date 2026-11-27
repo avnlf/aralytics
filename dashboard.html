@@ -22,37 +22,37 @@
 
         <section class="welcome">
             <p class="tagline">YOUR ACADEMIC OVERVIEW</p>
-          <h1 id="dashboardWelcome">Welcome back, Student!</h1>
+            <h1 id="dashboardWelcome">Welcome back, Student!</h1>
             <p>Here's a look at how you're doing academically.</p>
         </section>
 
-       
-<section class="stats">
+        <section class="stats">
 
-    <div class="stat-card">
-        <p>General Weighted Average</p>
-        <h2 id="dashboardGWA">—</h2>
-        <span>Current grading period</span>
-    </div>
+            <div class="stat-card">
+                <p>General Weighted Average</p>
+                <h2 id="dashboardGWA">—</h2>
+                <span>Current grading period</span>
+            </div>
 
-    <div class="stat-card">
-        <p>Total Subjects</p>
-        <h2 id="dashboardTotalSubjects">0</h2>
-        <span>Currently enrolled</span>
-    </div>
+            <div class="stat-card">
+                <p>Total Subjects</p>
+                <h2 id="dashboardTotalSubjects">0</h2>
+                <span>Currently enrolled</span>
+            </div>
 
-    <div class="stat-card">
-        <p>Highest Grade</p>
-        <h2 id="dashboardHighestGrade">—</h2>
-        <span id="dashboardHighestSubject">No grades recorded</span>
-    </div>
+            <div class="stat-card">
+                <p>Highest Grade</p>
+                <h2 id="dashboardHighestGrade">—</h2>
+                <span id="dashboardHighestSubject">No grades recorded</span>
+            </div>
 
-  <div class="stat-card">
-    <p>Needs Attention</p>
-    <h2 id="dashboardNeedsAttention">0</h2>
-    <span>Including subjects with partial grades</span>
-</div>
-</section>
+            <div class="stat-card">
+                <p>Needs Attention</p>
+                <h2 id="dashboardNeedsAttention">0</h2>
+                <span>Including subjects with partial grades</span>
+            </div>
+
+        </section>
 
         <section class="dashboard-content">
 
@@ -74,7 +74,6 @@
                 <div id="dashboardSubjectList">
                     <p>Loading subjects...</p>
                 </div>
-
             </div>
 
         </section>
@@ -88,77 +87,167 @@
             </div>
         </section>
 
-       
-<section class="dashboard-card attention">
-    <h2>Subjects to Keep an Eye On</h2>
+        <section class="dashboard-card attention">
+            <h2>Subjects to Keep an Eye On</h2>
 
-    <p id="dashboardAttentionContext">
-        Subjects that may need additional attention.
-    </p>
+            <p id="dashboardAttentionContext">
+                Subjects that may need additional attention.
+            </p>
 
-    <div id="dashboardAttentionList">
-        <p>Checking subject performance...</p>
-    </div>
-</section>
+            <div id="dashboardAttentionList">
+                <p>Checking subject performance...</p>
+            </div>
+        </section>
 
     </main>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-<script src="js/auth-guard.js"></script>
-<script src="js/database.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="js/dashboard.js"></script>
+    <!-- SUPABASE AND DATABASE -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/auth-guard.js"></script>
+    <script src="js/database.js"></script>
+
+    <!-- CHARTS -->
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/dashboard.js"></script>
+
+    <!-- DASHBOARD DATA -->
 
     <script>
 
-// LOAD THE USER'S PROFILE
+    // ==========================================
+    // LOAD DASHBOARD
+    // ==========================================
 
-const savedProfile = localStorage.getItem("aralyticsUserProfile");
+    document.addEventListener("DOMContentLoaded", () => {
+        initializeDashboard();
+    });
 
-if (savedProfile) {
-    const profile = JSON.parse(savedProfile);
 
-    if (profile.fullName) {
-        document.getElementById("dashboardWelcome").textContent =
-            "Welcome back, " + profile.fullName + "!";
-    }
-}
-        // LOAD THE MOST RECENTLY SELECTED ACADEMIC CONTEXT
+    async function initializeDashboard() {
 
-        function displayDashboardSubjects() {
+        const db = window.aralyticsDB;
 
-            const grade = localStorage.getItem("aralyticsCurrentGrade");
-            const semester = localStorage.getItem("aralyticsCurrentSemester");
-            const period = localStorage.getItem("aralyticsCurrentPeriod");
+        if (!db) {
+            console.error("Database helper is unavailable.");
+            return;
+        }
+
+        try {
+
+            // ==========================================
+            // LOAD PROFILE
+            // ==========================================
+
+            const savedProfile =
+                localStorage.getItem("aralyticsUserProfile");
+
+            if (savedProfile) {
+                const profile = JSON.parse(savedProfile);
+
+                if (profile.fullName) {
+                    document.getElementById(
+                        "dashboardWelcome"
+                    ).textContent =
+                        "Welcome back, " + profile.fullName + "!";
+                }
+            }
+
+            // ==========================================
+            // GET CURRENT ACADEMIC CONTEXT
+            // ==========================================
+
+            const context = db.getAcademicContext();
+
+            const grade = context.grade_level;
+            const semester = context.semester;
+            const period = context.grading_period;
 
             const subjectList =
                 document.getElementById("dashboardSubjectList");
 
-            const context =
+            const subjectContext =
                 document.getElementById("dashboardSubjectContext");
 
-            if (!grade || !semester || !period) {
+            const attentionList =
+                document.getElementById("dashboardAttentionList");
 
-                subjectList.innerHTML =
-                    "<p>No academic records selected yet. Visit My Subjects and select a grading period first.</p>";
+            const attentionContext =
+                document.getElementById("dashboardAttentionContext");
 
-                return;
-            }
 
-            context.textContent =
+            subjectContext.textContent =
                 "Grade " + grade +
                 " | Semester " + semester +
                 " | " + period;
 
-            const storageKey =
-                "aralyticsSubjects_G" + grade +
-                "_S" + semester +
-                "_" + period;
+            attentionContext.textContent =
+                "Grade " + grade +
+                " | Semester " + semester +
+                " | " + period;
 
-            const subjects = JSON.parse(
-                localStorage.getItem(storageKey) || "[]"
-            );
+
+            // ==========================================
+            // FETCH CURRENT PERIOD SUBJECTS
+            // ==========================================
+
+            const subjects = await db.getSubjects(context);
+
+            // ==========================================
+            // FETCH CURRENT PERIOD GRADES
+            // ==========================================
+
+            const subjectIds = subjects.map(subject => subject.id);
+
+            const savedGrades =
+                await db.getSubjectGrades(subjectIds);
+
+            const gradeMap = new Map();
+
+            savedGrades.forEach(record => {
+                gradeMap.set(record.subject_id, record);
+            });
+
+
+            // ==========================================
+            // GET EFFECTIVE SUBJECT GRADE
+            // ==========================================
+
+            function getSubjectGrade(subject) {
+
+                const record = gradeMap.get(subject.id);
+
+                if (!record) return null;
+
+                // MANUAL GRADE TAKES PRIORITY
+
+                const savedGrade =
+                    record.manual_grade !== null
+                        ? record.manual_grade
+                        : record.calculated_grade;
+
+                if (
+                    savedGrade === null ||
+                    savedGrade === undefined
+                ) {
+                    return null;
+                }
+
+                const value = Number(savedGrade);
+
+                return Number.isFinite(value) &&
+                    value >= 0 &&
+                    value <= 100
+                        ? value
+                        : null;
+            }
+
+
+            // ==========================================
+            // DISPLAY SUBJECT OVERVIEW
+            // ==========================================
 
             subjectList.innerHTML = "";
 
@@ -167,675 +256,463 @@ if (savedProfile) {
                 subjectList.innerHTML =
                     "<p>No subjects have been added to this grading period yet.</p>";
 
-                return;
-            }
+            } else {
 
-            subjects.forEach((subject, index) => {
+                subjects.forEach(subject => {
 
-                const item = document.createElement("div");
-                item.className = "subject-item";
+                    const currentGrade =
+                        getSubjectGrade(subject);
 
-                const details = document.createElement("div");
+                    const item = document.createElement("div");
+                    item.className = "subject-item";
 
-                const name = document.createElement("span");
-                name.textContent = subject.name;
+                    const details = document.createElement("div");
 
-                const teacher = document.createElement("p");
-                teacher.textContent =
-                    "Teacher: " + (subject.teacher || "Not specified");
+                    const name = document.createElement("span");
+                    name.textContent = subject.subject_name;
 
-                teacher.style.fontSize = "12px";
-                teacher.style.margin = "4px 0";
+                    const teacher = document.createElement("p");
 
-                const unitsKey =
-                    "aralyticsSubjectUnits_G" + grade +
-                    "_S" + semester +
-                    "_" + encodeURIComponent(
-                        subject.name.trim().toLowerCase()
-                    );
+                    teacher.textContent =
+                        "Teacher: " +
+                        (subject.teacher || "Not specified");
 
-                const savedUnits = localStorage.getItem(unitsKey);
+                    teacher.style.fontSize = "12px";
+                    teacher.style.margin = "4px 0";
 
-                const units = savedUnits !== null
-                    ? savedUnits
-                    : subject.units;
+                    const unitsText = document.createElement("p");
 
-                const unitsText = document.createElement("p");
+                    unitsText.textContent =
+                        "Units: " +
+                        Number(subject.units).toFixed(2);
 
-                unitsText.textContent =
-                    "Units: " +
-                    (units !== undefined && units !== ""
-                        ? Number(units).toFixed(2)
-                        : "Not set");
+                    unitsText.style.fontSize = "12px";
+                    unitsText.style.margin = "0";
 
-                unitsText.style.fontSize = "12px";
-                unitsText.style.margin = "0";
+                    details.appendChild(name);
+                    details.appendChild(teacher);
+                    details.appendChild(unitsText);
 
-                details.appendChild(name);
-                details.appendChild(teacher);
-                details.appendChild(unitsText);
 
-                const gradeDisplay = document.createElement("strong");
+                    // SUBJECT GRADE
 
-                const manualGradeKey =
-                    "aralyticsManualGrade_G" + grade +
-                    "_S" + semester +
-                    "_" + period +
-                    "_Subject" + index;
+                    const gradeDisplay =
+                        document.createElement("strong");
 
-                const manualGrade =
-                    localStorage.getItem(manualGradeKey);
+                    gradeDisplay.textContent =
+                        currentGrade !== null
+                            ? currentGrade.toFixed(2)
+                            : "Not graded";
 
-                let currentGrade = null;
+                    gradeDisplay.style.fontSize = "18px";
+                    gradeDisplay.style.color = "#35483B";
 
-                // MANUAL GRADE TAKES PRIORITY
 
-                if (manualGrade !== null) {
+                    // SUBJECT HEADER
 
-                    const parsedGrade = Number(manualGrade);
+                    const subjectHeader =
+                        document.createElement("div");
 
-                    if (Number.isFinite(parsedGrade)) {
-                        currentGrade = parsedGrade;
-                    }
+                    subjectHeader.style.display = "flex";
+                    subjectHeader.style.justifyContent = "space-between";
+                    subjectHeader.style.alignItems = "center";
+                    subjectHeader.style.gap = "12px";
 
-                } else {
+                    subjectHeader.appendChild(details);
+                    subjectHeader.appendChild(gradeDisplay);
 
-                    // OTHERWISE CALCULATE FROM ASSESSMENTS
 
-                    const componentKey =
-                        "aralyticsComponents_G" + grade +
-                        "_S" + semester +
-                        "_" + period +
-                        "_Subject" + index;
+                    // PERFORMANCE LABEL
 
-                    const assessmentKey =
-                        "aralyticsAssessments_G" + grade +
-                        "_S" + semester +
-                        "_" + period +
-                        "_Subject" + index;
+                    const performance =
+                        document.createElement("span");
 
-                    const savedComponents =
-                        localStorage.getItem(componentKey);
+                    let performanceText = "Not Graded";
+                    let performanceColor = "#888888";
 
-                    const savedAssessments =
-                        localStorage.getItem(assessmentKey);
+                    if (currentGrade !== null) {
 
-                    if (savedComponents && savedAssessments) {
+                        if (currentGrade >= 90) {
+                            performanceText = "Excellent";
+                            performanceColor = "#559B91";
 
-                        const components =
-                            JSON.parse(savedComponents);
+                        } else if (currentGrade >= 85) {
+                            performanceText = "Very Good";
+                            performanceColor = "#78977B";
 
-                        const assessments =
-                            JSON.parse(savedAssessments);
+                        } else if (currentGrade >= 80) {
+                            performanceText = "Good";
+                            performanceColor = "#A8A76B";
 
-                        let weightedTotal = 0;
-                        let gradedWeight = 0;
+                        } else if (currentGrade >= 75) {
+                            performanceText = "Satisfactory";
+                            performanceColor = "#D9A45B";
 
-                        components.forEach((component, componentIndex) => {
-
-                            const componentAssessments =
-                                assessments[componentIndex] || [];
-
-                            let totalEarned = 0;
-                            let totalPossible = 0;
-
-                            componentAssessments.forEach(assessment => {
-
-                                const earned = Number(assessment.earned);
-                                const possible = Number(assessment.possible);
-
-                                if (
-                                    assessment.earned !== "" &&
-                                    assessment.possible !== "" &&
-                                    Number.isFinite(earned) &&
-                                    Number.isFinite(possible) &&
-                                    possible > 0 &&
-                                    earned >= 0 &&
-                                    earned <= possible
-                                ) {
-                                    totalEarned += earned;
-                                    totalPossible += possible;
-                                }
-
-                            });
-
-                            if (totalPossible > 0) {
-
-                                const average =
-                                    (totalEarned / totalPossible) * 100;
-
-                                const weight = Number(component.weight);
-
-                                if (
-                                    Number.isFinite(weight) &&
-                                    weight > 0
-                                ) {
-                                    weightedTotal += average * weight;
-                                    gradedWeight += weight;
-                                }
-
-                            }
-
-                        });
-
-                        if (gradedWeight > 0) {
-                            currentGrade = weightedTotal / gradedWeight;
+                        } else {
+                            performanceText = "Needs Improvement";
+                            performanceColor = "#C87575";
                         }
 
                     }
 
-                }
+                    performance.textContent = performanceText;
+                    performance.style.color = performanceColor;
+                    performance.style.fontSize = "13px";
+                    performance.style.fontWeight = "600";
 
-               
-// DISPLAY THE SUBJECT GRADE
 
-gradeDisplay.textContent =
-    currentGrade !== null
-        ? currentGrade.toFixed(2)
-        : "Not graded";
+                    // PROGRESS BAR
 
-// CREATE THE SUBJECT HEADER
+                    const progressTrack =
+                        document.createElement("div");
 
-const subjectHeader = document.createElement("div");
+                    progressTrack.style.width = "100%";
+                    progressTrack.style.height = "8px";
+                    progressTrack.style.backgroundColor = "#E9F0E6";
+                    progressTrack.style.borderRadius = "20px";
+                    progressTrack.style.overflow = "hidden";
 
-subjectHeader.style.display = "flex";
-subjectHeader.style.justifyContent = "space-between";
-subjectHeader.style.alignItems = "center";
-subjectHeader.style.gap = "12px";
+                    const progressFill =
+                        document.createElement("div");
 
-subjectHeader.appendChild(details);
+                    progressFill.style.height = "100%";
 
-gradeDisplay.style.fontSize = "18px";
-gradeDisplay.style.color = "#35483B";
+                    progressFill.style.width =
+                        currentGrade !== null
+                            ? Math.max(
+                                0,
+                                Math.min(100, currentGrade)
+                              ) + "%"
+                            : "0%";
 
-subjectHeader.appendChild(gradeDisplay);
+                    progressFill.style.backgroundColor =
+                        performanceColor;
 
-// CREATE PERFORMANCE LABEL
+                    progressFill.style.borderRadius = "20px";
+                    progressFill.style.transition =
+                        "width 0.3s ease";
 
-const performance = document.createElement("span");
+                    progressTrack.appendChild(progressFill);
 
-let performanceText = "Not Graded";
-let performanceColor = "#888888";
 
-if (currentGrade !== null) {
+                    // ORGANIZE SUBJECT CARD
 
-    if (currentGrade >= 90) {
-        performanceText = "Excellent";
-        performanceColor = "#559B91";
-    } else if (currentGrade >= 85) {
-        performanceText = "Very Good";
-        performanceColor = "#78977B";
-    } else if (currentGrade >= 80) {
-        performanceText = "Good";
-        performanceColor = "#A8A76B";
-    } else if (currentGrade >= 75) {
-        performanceText = "Satisfactory";
-        performanceColor = "#D9A45B";
-    } else {
-        performanceText = "Needs Improvement";
-        performanceColor = "#C87575";
-    }
+                    item.style.display = "flex";
+                    item.style.flexDirection = "column";
+                    item.style.alignItems = "stretch";
+                    item.style.gap = "10px";
+                    item.style.cursor = "pointer";
 
-}
+                    item.appendChild(subjectHeader);
+                    item.appendChild(performance);
+                    item.appendChild(progressTrack);
 
-performance.textContent = performanceText;
-performance.style.color = performanceColor;
-performance.style.fontSize = "13px";
-performance.style.fontWeight = "600";
 
-// CREATE PROGRESS BAR
+                    // OPEN GRADEBOOK USING SUPABASE SUBJECT ID
 
-const progressTrack = document.createElement("div");
+                    item.addEventListener("click", () => {
 
-progressTrack.style.width = "100%";
-progressTrack.style.height = "8px";
-progressTrack.style.backgroundColor = "#E9F0E6";
-progressTrack.style.borderRadius = "20px";
-progressTrack.style.overflow = "hidden";
-
-const progressFill = document.createElement("div");
-
-progressFill.style.height = "100%";
-progressFill.style.width =
-    currentGrade !== null
-        ? Math.max(0, Math.min(100, currentGrade)) + "%"
-        : "0%";
-
-progressFill.style.backgroundColor = performanceColor;
-progressFill.style.borderRadius = "20px";
-progressFill.style.transition = "width 0.3s ease";
-
-progressTrack.appendChild(progressFill);
-
-// ORGANIZE THE SUBJECT CARD
-
-item.style.display = "flex";
-item.style.flexDirection = "column";
-item.style.alignItems = "stretch";
-item.style.gap = "10px";
-item.style.cursor = "pointer";
-
-item.appendChild(subjectHeader);
-item.appendChild(performance);
-item.appendChild(progressTrack);
-
-// OPEN THE SUBJECT GRADEBOOK WHEN CLICKED
-
-item.addEventListener("click", function() {
-
-    window.location.href =
-        "gradebook.html?grade=" + grade +
-        "&semester=" + semester +
-        "&period=" + period +
-        "&subjectIndex=" + index;
-
-});
-
-// ADD TO DASHBOARD
-
-subjectList.appendChild(item);
-
-
-            });
-
-        }
-
-
-function displayDashboardStats() {
-
-    const grade = localStorage.getItem("aralyticsCurrentGrade");
-    const semester = localStorage.getItem("aralyticsCurrentSemester");
-    const period = localStorage.getItem("aralyticsCurrentPeriod");
-
-    const gwaDisplay = document.getElementById("dashboardGWA");
-    const totalDisplay = document.getElementById("dashboardTotalSubjects");
-    const highestDisplay = document.getElementById("dashboardHighestGrade");
-    const highestSubjectDisplay = document.getElementById("dashboardHighestSubject");
-    const attentionDisplay = document.getElementById("dashboardNeedsAttention");
-
-    if (!grade || !semester || !period) {
-        gwaDisplay.textContent = "—";
-        totalDisplay.textContent = "0";
-        highestDisplay.textContent = "—";
-        highestSubjectDisplay.textContent = "No grades recorded";
-        attentionDisplay.textContent = "0";
-        return;
-    }
-
-    const storageKey =
-        "aralyticsSubjects_G" + grade +
-        "_S" + semester +
-        "_" + period;
-
-    const subjects = JSON.parse(
-        localStorage.getItem(storageKey) || "[]"
-    );
-
-    let weightedGradeTotal = 0;
-    let totalUnits = 0;
-
-    let highestGrade = null;
-    let highestSubject = "";
-
-    let needsAttention = 0;
-
-    subjects.forEach((subject, index) => {
-
-        let subjectGrade = null;
-
-        // CHECK FOR A MANUAL GRADE FIRST
-
-        const manualGradeKey =
-            "aralyticsManualGrade_G" + grade +
-            "_S" + semester +
-            "_" + period +
-            "_Subject" + index;
-
-        const manualGrade = localStorage.getItem(manualGradeKey);
-
-        if (manualGrade !== null) {
-
-            const parsedGrade = Number(manualGrade);
-
-            if (
-                Number.isFinite(parsedGrade) &&
-                parsedGrade >= 0 &&
-                parsedGrade <= 100
-            ) {
-                subjectGrade = parsedGrade;
-            }
-
-        } else {
-
-            // OTHERWISE CALCULATE THE GRADE FROM ASSESSMENTS
-
-            const componentKey =
-                "aralyticsComponents_G" + grade +
-                "_S" + semester +
-                "_" + period +
-                "_Subject" + index;
-
-            const assessmentKey =
-                "aralyticsAssessments_G" + grade +
-                "_S" + semester +
-                "_" + period +
-                "_Subject" + index;
-
-            const savedComponents = localStorage.getItem(componentKey);
-            const savedAssessments = localStorage.getItem(assessmentKey);
-
-            if (savedComponents && savedAssessments) {
-
-                const components = JSON.parse(savedComponents);
-                const assessments = JSON.parse(savedAssessments);
-
-                let weightedTotal = 0;
-                let gradedWeight = 0;
-
-                components.forEach((component, componentIndex) => {
-
-                    const componentAssessments =
-                        assessments[componentIndex] || [];
-
-                    let totalEarned = 0;
-                    let totalPossible = 0;
-
-                    componentAssessments.forEach(assessment => {
-
-                        const earned = Number(assessment.earned);
-                        const possible = Number(assessment.possible);
-
-                        if (
-                            assessment.earned !== "" &&
-                            assessment.possible !== "" &&
-                            Number.isFinite(earned) &&
-                            Number.isFinite(possible) &&
-                            possible > 0 &&
-                            earned >= 0 &&
-                            earned <= possible
-                        ) {
-                            totalEarned += earned;
-                            totalPossible += possible;
-                        }
+                        window.location.href =
+                            "gradebook.html?subjectId=" +
+                            encodeURIComponent(subject.id);
 
                     });
 
-                    if (totalPossible > 0) {
 
-                        const average =
-                            (totalEarned / totalPossible) * 100;
-
-                        const weight = Number(component.weight);
-
-                        if (
-                            Number.isFinite(weight) &&
-                            weight > 0
-                        ) {
-                            weightedTotal += average * weight;
-                            gradedWeight += weight;
-                        }
-
-                    }
+                    subjectList.appendChild(item);
 
                 });
 
-                if (gradedWeight > 0) {
-                    subjectGrade = weightedTotal / gradedWeight;
+            }
+
+
+            // ==========================================
+            // CALCULATE DASHBOARD STATISTICS
+            // ==========================================
+
+            let weightedGradeTotal = 0;
+            let totalUnits = 0;
+
+            let highestGrade = null;
+            let highestSubject = "";
+
+            let needsAttention = 0;
+
+            subjects.forEach(subject => {
+
+                const subjectGrade =
+                    getSubjectGrade(subject);
+
+                if (subjectGrade === null) return;
+
+
+                // HIGHEST GRADE
+
+                if (
+                    highestGrade === null ||
+                    subjectGrade > highestGrade
+                ) {
+                    highestGrade = subjectGrade;
+                    highestSubject = subject.subject_name;
+                }
+
+
+                // SUBJECTS BELOW 75
+
+                if (subjectGrade < 75) {
+                    needsAttention++;
+                }
+
+
+                // UNIT-WEIGHTED GWA
+
+                const units = Number(subject.units);
+
+                if (
+                    Number.isFinite(units) &&
+                    units > 0
+                ) {
+                    weightedGradeTotal +=
+                        subjectGrade * units;
+
+                    totalUnits += units;
+                }
+
+            });
+
+
+            // ==========================================
+            // UPDATE STATISTIC CARDS
+            // ==========================================
+
+            document.getElementById(
+                "dashboardGWA"
+            ).textContent =
+                totalUnits > 0
+                    ? (weightedGradeTotal / totalUnits).toFixed(2)
+                    : "—";
+
+            document.getElementById(
+                "dashboardTotalSubjects"
+            ).textContent = subjects.length;
+
+            document.getElementById(
+                "dashboardHighestGrade"
+            ).textContent =
+                highestGrade !== null
+                    ? highestGrade.toFixed(2)
+                    : "—";
+
+            document.getElementById(
+                "dashboardHighestSubject"
+            ).textContent =
+                highestSubject || "No grades recorded";
+
+            document.getElementById(
+                "dashboardNeedsAttention"
+            ).textContent = needsAttention;
+
+
+            // ==========================================
+            // SUBJECTS TO KEEP AN EYE ON
+            // ==========================================
+
+            attentionList.innerHTML = "";
+
+            // GET MIDTERM SUBJECTS WHEN VIEWING FINALS
+
+            let midtermGradeMap = new Map();
+
+            if (period === "Finals") {
+
+                const midtermContext = {
+                    grade_level: grade,
+                    semester: semester,
+                    grading_period: "Midterms"
+                };
+
+                const midtermSubjects =
+                    await db.getSubjects(midtermContext);
+
+                const midtermIds =
+                    midtermSubjects.map(subject => subject.id);
+
+                const midtermGrades =
+                    await db.getSubjectGrades(midtermIds);
+
+                midtermGrades.forEach(record => {
+
+                    midtermGradeMap.set(
+                        record.subject_id,
+                        record
+                    );
+
+                });
+
+
+                // MATCH MIDTERM GRADES BY SUBJECT NAME
+
+                const midtermByName = new Map();
+
+                midtermSubjects.forEach(subject => {
+
+                    const record =
+                        midtermGradeMap.get(subject.id);
+
+                    if (!record) return;
+
+                    const savedGrade =
+                        record.manual_grade !== null
+                            ? record.manual_grade
+                            : record.calculated_grade;
+
+                    if (savedGrade === null || savedGrade === undefined) {
+                        return;
+                    }
+
+                    const value = Number(savedGrade);
+
+                    if (
+                        !Number.isFinite(value) ||
+                        value < 0 ||
+                        value > 100
+                    ) return;
+
+                    midtermByName.set(
+                        subject.subject_name.trim().toLowerCase(),
+                        value
+                    );
+
+                });
+
+
+                // CHECK EACH FINALS SUBJECT
+
+                let flaggedCount = 0;
+
+                subjects.forEach(subject => {
+
+                    const current = getSubjectGrade(subject);
+
+                    if (current === null) return;
+
+                    const reasons = [];
+
+                    if (current < 75) {
+                        reasons.push("Needs Improvement");
+                    }
+
+                    const midterm =
+                        midtermByName.get(
+                            subject.subject_name.trim().toLowerCase()
+                        );
+
+                    if (
+                        midterm !== undefined &&
+                        current < midterm
+                    ) {
+                        reasons.push("Declining");
+                    }
+
+                    if (reasons.length === 0) return;
+
+                    flaggedCount++;
+
+                    createAttentionItem(
+                        subject.subject_name,
+                        current,
+                        reasons,
+                        attentionList
+                    );
+
+                });
+
+                if (flaggedCount === 0) {
+                    attentionList.innerHTML =
+                        "<p>No subjects currently require attention. Keep up the good work!</p>";
+                }
+
+            } else {
+
+                // MIDTERMS: ONLY CHECK GRADES BELOW 75
+
+                let flaggedCount = 0;
+
+                subjects.forEach(subject => {
+
+                    const current = getSubjectGrade(subject);
+
+                    if (current === null || current >= 75) return;
+
+                    flaggedCount++;
+
+                    createAttentionItem(
+                        subject.subject_name,
+                        current,
+                        ["Needs Improvement"],
+                        attentionList
+                    );
+
+                });
+
+                if (flaggedCount === 0) {
+                    attentionList.innerHTML =
+                        "<p>No subjects currently require attention. Keep up the good work!</p>";
                 }
 
             }
 
+        } catch (error) {
+
+            console.error("Dashboard loading error:", error);
+
+            document.getElementById(
+                "dashboardSubjectList"
+            ).innerHTML =
+                "<p>Unable to load dashboard data. Please refresh the page.</p>";
+
+            document.getElementById(
+                "dashboardAttentionList"
+            ).innerHTML =
+                "<p>Unable to load subject alerts.</p>";
+
         }
 
-        // SKIP SUBJECTS WITHOUT A VALID GRADE
-
-        if (
-            subjectGrade === null ||
-            !Number.isFinite(subjectGrade)
-        ) {
-            return;
-        }
-
-        // TRACK THE HIGHEST GRADE
-
-        if (
-            highestGrade === null ||
-            subjectGrade > highestGrade
-        ) {
-            highestGrade = subjectGrade;
-            highestSubject = subject.name;
-        }
-
-        // COUNT SUBJECTS BELOW 75
-
-        if (subjectGrade < 75) {
-            needsAttention++;
-        }
-
-        // CALCULATE UNIT-WEIGHTED GWA
-
-        const unitsKey =
-            "aralyticsSubjectUnits_G" + grade +
-            "_S" + semester +
-            "_" + encodeURIComponent(
-                subject.name.trim().toLowerCase()
-            );
-
-        const savedUnits = localStorage.getItem(unitsKey);
-
-        const units = Number(
-            savedUnits !== null ? savedUnits : subject.units
-        );
-
-        if (Number.isFinite(units) && units > 0) {
-            weightedGradeTotal += subjectGrade * units;
-            totalUnits += units;
-        }
-
-    });
-
-    // UPDATE THE FOUR STATISTIC CARDS
-
-    gwaDisplay.textContent =
-        totalUnits > 0
-            ? (weightedGradeTotal / totalUnits).toFixed(2)
-            : "—";
-
-    totalDisplay.textContent = subjects.length;
-
-    highestDisplay.textContent =
-        highestGrade !== null
-            ? highestGrade.toFixed(2)
-            : "—";
-
-    highestSubjectDisplay.textContent =
-        highestSubject || "No grades recorded";
-
-    attentionDisplay.textContent = needsAttention;
-
-}
-
-
-function getDashboardGrade(grade, semester, period, index) {
-
-    const manualKey =
-        "aralyticsManualGrade_G" + grade +
-        "_S" + semester +
-        "_" + period +
-        "_Subject" + index;
-
-    const manual = localStorage.getItem(manualKey);
-
-    if (manual !== null) {
-        const value = Number(manual);
-
-        return Number.isFinite(value) && value >= 0 && value <= 100
-            ? value
-            : null;
     }
 
-    const componentKey =
-        "aralyticsComponents_G" + grade +
-        "_S" + semester +
-        "_" + period +
-        "_Subject" + index;
 
-    const assessmentKey =
-        "aralyticsAssessments_G" + grade +
-        "_S" + semester +
-        "_" + period +
-        "_Subject" + index;
+    // ==========================================
+    // CREATE ATTENTION LIST ITEM
+    // ==========================================
 
-    const savedComponents = localStorage.getItem(componentKey);
-    const savedAssessments = localStorage.getItem(assessmentKey);
-
-    if (!savedComponents || !savedAssessments) return null;
-
-    const components = JSON.parse(savedComponents);
-    const assessments = JSON.parse(savedAssessments);
-
-    let weightedTotal = 0;
-    let gradedWeight = 0;
-
-    components.forEach((component, componentIndex) => {
-
-        const rows = assessments[componentIndex] || [];
-
-        let earnedTotal = 0;
-        let possibleTotal = 0;
-
-        rows.forEach(assessment => {
-
-            const earned = Number(assessment.earned);
-            const possible = Number(assessment.possible);
-
-            if (
-                assessment.earned !== "" &&
-                assessment.possible !== "" &&
-                Number.isFinite(earned) &&
-                Number.isFinite(possible) &&
-                possible > 0 &&
-                earned >= 0 &&
-                earned <= possible
-            ) {
-                earnedTotal += earned;
-                possibleTotal += possible;
-            }
-
-        });
-
-        const weight = Number(component.weight);
-
-        if (
-            possibleTotal > 0 &&
-            Number.isFinite(weight) &&
-            weight > 0
-        ) {
-            const average = (earnedTotal / possibleTotal) * 100;
-
-            weightedTotal += average * weight;
-            gradedWeight += weight;
-        }
-
-    });
-
-    return gradedWeight > 0
-        ? weightedTotal / gradedWeight
-        : null;
-}
-
-
-function displayDashboardAttention() {
-
-    const grade = localStorage.getItem("aralyticsCurrentGrade");
-    const semester = localStorage.getItem("aralyticsCurrentSemester");
-    const period = localStorage.getItem("aralyticsCurrentPeriod");
-
-    const list = document.getElementById("dashboardAttentionList");
-    const context = document.getElementById("dashboardAttentionContext");
-
-    list.innerHTML = "";
-
-    if (!grade || !semester || !period) {
-        list.textContent = "Select your academic period to view subject alerts.";
-        return;
-    }
-
-    const storageKey =
-        "aralyticsSubjects_G" + grade +
-        "_S" + semester +
-        "_" + period;
-
-    const subjects = JSON.parse(
-        localStorage.getItem(storageKey) || "[]"
-    );
-
-    context.textContent =
-        "Grade " + grade + " | Semester " + semester + " | " + period;
-
-    let flaggedCount = 0;
-
-    subjects.forEach((subject, index) => {
-
-        const current = getDashboardGrade(
-            grade, semester, period, index
-        );
-
-        if (current === null) return;
-
-        const reasons = [];
-
-        if (current < 75) {
-            reasons.push("Needs Improvement");
-        }
-
-        // COMPARE FINALS WITH MIDTERMS TO IDENTIFY DECLINING GRADES
-
-        if (period === "Finals") {
-
-            const midterm = getDashboardGrade(
-                grade, semester, "Midterms", index
-            );
-
-            if (midterm !== null && current < midterm) {
-                reasons.push("Declining");
-            }
-
-        }
-
-        if (reasons.length === 0) return;
-
-        flaggedCount++;
+    function createAttentionItem(
+        subjectName,
+        currentGrade,
+        reasons,
+        container
+    ) {
 
         const item = document.createElement("div");
         item.className = "subject-item";
 
         const name = document.createElement("span");
-        name.textContent = subject.name;
+        name.textContent = subjectName;
 
         const status = document.createElement("strong");
+
         status.textContent =
-            current.toFixed(2) + " | " + reasons.join(", ");
+            currentGrade.toFixed(2) +
+            " | " +
+            reasons.join(", ");
 
         status.className = "warning";
 
         item.appendChild(name);
         item.appendChild(status);
 
-        list.appendChild(item);
+        container.appendChild(item);
 
-    });
-
-    if (flaggedCount === 0) {
-        list.innerHTML =
-            "<p>No subjects currently require attention. Keep up the good work!</p>";
     }
-
-}
-
-       displayDashboardSubjects();
-displayDashboardStats();
-displayDashboardAttention();
 
     </script>
 
