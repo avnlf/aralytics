@@ -1054,3 +1054,8 @@ header h2 a {
     cursor: pointer;
     font-size: 18px;
 }
+
+/* Ensure hidden elements stay hidden */
+[hidden] {
+    display: none !important;
+}
