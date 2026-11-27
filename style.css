@@ -1059,3 +1059,8 @@ header h2 a {
 [hidden] {
     display: none !important;
 }
+
+/* Keep the registration form hidden until requested */
+#registerForm[hidden] {
+    display: none !important;
+}
