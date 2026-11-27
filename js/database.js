@@ -77,6 +77,22 @@
         return data;
     }
 
+    async function getSemesterSubjects(grade, semester) {
+        const user = await getCurrentUser();
+
+        const { data, error } = await supabase
+            .from("subjects")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("grade_level", grade)
+            .eq("semester", semester)
+            .order("created_at", { ascending: true });
+
+        if (error) throw error;
+
+        return data;
+    }
+
     async function getSubjectById(subjectId) {
         await getCurrentUser();
 
@@ -97,7 +113,8 @@
 
         const name = String(subject.subject_name || "").trim();
         const teacher = String(subject.teacher || "").trim();
-        const units = Number(subject.units);
+
+        let units = Number(subject.units);
 
         if (!name) {
             throw new Error("Subject name is required.");
@@ -105,6 +122,20 @@
 
         if (!Number.isFinite(units) || units <= 0) {
             throw new Error("Subject units must be greater than zero.");
+        }
+
+        // Check the other grading period for shared units.
+        const semesterSubjects = await getSemesterSubjects(
+            context.grade_level,
+            context.semester
+        );
+
+        const matchingSubject = semesterSubjects.find(item =>
+            item.subject_name.trim().toLowerCase() === name.toLowerCase()
+        );
+
+        if (matchingSubject) {
+            units = Number(matchingSubject.units);
         }
 
         const { data, error } = await supabase
@@ -125,7 +156,10 @@
     }
 
     async function updateSubject(subjectId, changes) {
-        await getCurrentUser();
+        const user = await getCurrentUser();
+
+        // Retrieve the original subject before updating it.
+        const original = await getSubjectById(subjectId);
 
         const allowedChanges = {};
 
@@ -154,7 +188,7 @@
         }
 
         if (Object.keys(allowedChanges).length === 0) {
-            return null;
+            return original;
         }
 
         allowedChanges.updated_at = new Date().toISOString();
@@ -168,6 +202,36 @@
 
         if (error) throw error;
 
+        // Synchronize units with the matching subject
+        // in the other grading period.
+        if (changes.units !== undefined) {
+            const semesterSubjects = await getSemesterSubjects(
+                original.grade_level,
+                original.semester
+            );
+
+            const matchingIds = semesterSubjects
+                .filter(item =>
+                    item.id !== subjectId &&
+                    item.subject_name.trim().toLowerCase() ===
+                    original.subject_name.trim().toLowerCase()
+                )
+                .map(item => item.id);
+
+            if (matchingIds.length > 0) {
+                const { error: syncError } = await supabase
+                    .from("subjects")
+                    .update({
+                        units: Number(changes.units),
+                        updated_at: new Date().toISOString()
+                    })
+                    .in("id", matchingIds)
+                    .eq("user_id", user.id);
+
+                if (syncError) throw syncError;
+            }
+        }
+
         return data;
     }
 
@@ -180,6 +244,65 @@
             .eq("id", subjectId);
 
         if (error) throw error;
+    }
+
+    /* =========================================
+       SUBJECT GRADES
+    ========================================= */
+
+    async function getSubjectGrade(subjectId) {
+        await getCurrentUser();
+
+        const { data, error } = await supabase
+            .from("subject_grades")
+            .select("*")
+            .eq("subject_id", subjectId)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        return data;
+    }
+
+    async function getSubjectGrades(subjectIds) {
+        await getCurrentUser();
+
+        if (!subjectIds || subjectIds.length === 0) {
+            return [];
+        }
+
+        const { data, error } = await supabase
+            .from("subject_grades")
+            .select("*")
+            .in("subject_id", subjectIds);
+
+        if (error) throw error;
+
+        return data;
+    }
+
+    async function saveSubjectGrade(subjectId, gradeData) {
+        const user = await getCurrentUser();
+
+        const { data, error } = await supabase
+            .from("subject_grades")
+            .upsert({
+                user_id: user.id,
+                subject_id: subjectId,
+                manual_grade: gradeData.manual_grade ?? null,
+                calculated_grade: gradeData.calculated_grade ?? null,
+                graded_assessments: gradeData.graded_assessments || 0,
+                weight_valid: Boolean(gradeData.weight_valid),
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: "user_id,subject_id"
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
     }
 
     /* =========================================
@@ -214,7 +337,7 @@
             display_order: index
         }));
 
-        if (!rows.length) return [];
+        if (rows.length === 0) return [];
 
         const { data, error } = await supabase
             .from("grading_components")
@@ -281,7 +404,7 @@
             display_order: index
         }));
 
-        if (!rows.length) return [];
+        if (rows.length === 0) return [];
 
         const { data, error } = await supabase
             .from("assessments")
@@ -302,48 +425,6 @@
             .eq("id", assessmentId);
 
         if (error) throw error;
-    }
-
-    /* =========================================
-       SUBJECT GRADES
-    ========================================= */
-
-    async function getSubjectGrade(subjectId) {
-        await getCurrentUser();
-
-        const { data, error } = await supabase
-            .from("subject_grades")
-            .select("*")
-            .eq("subject_id", subjectId)
-            .maybeSingle();
-
-        if (error) throw error;
-
-        return data;
-    }
-
-    async function saveSubjectGrade(subjectId, gradeData) {
-        const user = await getCurrentUser();
-
-        const { data, error } = await supabase
-            .from("subject_grades")
-            .upsert({
-                user_id: user.id,
-                subject_id: subjectId,
-                manual_grade: gradeData.manual_grade ?? null,
-                calculated_grade: gradeData.calculated_grade ?? null,
-                graded_assessments: gradeData.graded_assessments || 0,
-                weight_valid: Boolean(gradeData.weight_valid),
-                updated_at: new Date().toISOString()
-            }, {
-                onConflict: "user_id,subject_id"
-            })
-            .select()
-            .single();
-
-        if (error) throw error;
-
-        return data;
     }
 
     /* =========================================
@@ -409,10 +490,15 @@
         getAcademicContext,
 
         getSubjects,
+        getSemesterSubjects,
         getSubjectById,
         addSubject,
         updateSubject,
         deleteSubject,
+
+        getSubjectGrade,
+        getSubjectGrades,
+        saveSubjectGrade,
 
         getComponents,
         saveComponents,
@@ -421,9 +507,6 @@
         getAssessments,
         saveAssessments,
         deleteAssessment,
-
-        getSubjectGrade,
-        saveSubjectGrade,
 
         getGoals,
         saveGoal,
