@@ -128,9 +128,10 @@ header h2 a {
     margin-bottom: 30px;
 }
 
-.login-card form {
+.login-card form:not([hidden]) {
     display: flex;
     flex-direction: column;
+}
 }
 
 .login-card label {
