@@ -163,38 +163,131 @@
     <script src="js/auth-guard.js"></script>
     <script src="js/database.js"></script>
 
-    <!-- EXISTING GRADEBOOK JAVASCRIPT -->
     <script>
 
-        // GET INFORMATION FROM THE URL
+        // ==========================================
+        // INITIAL SETUP
+        // ==========================================
 
         const params = new URLSearchParams(window.location.search);
 
         const grade = params.get("grade");
         const semester = params.get("semester");
         const period = params.get("period");
-        const subjectIndex = Number(params.get("subjectIndex"));
+        const subjectId = params.get("subjectId");
+
+        const db = window.aralyticsDB;
+
+        let subject = null;
+        let components = [];
+        let assessments = {};
+
+        let isInitialized = false;
 
 
-        // FIND THE SELECTED SUBJECT
+        // ==========================================
+        // ERROR HANDLING
+        // ==========================================
 
-        const storageKey = "aralyticsSubjects_G" + grade +
-            "_S" + semester +
-            "_" + period;
+        function showError(error) {
 
-        const savedSubjects = localStorage.getItem(storageKey);
+            console.error("Gradebook error:", error);
 
-        const subjects = savedSubjects ? JSON.parse(savedSubjects) : [];
+            alert(
+                error?.message ||
+                "Something went wrong. Please try again."
+            );
+        }
 
-        const subject = subjects[subjectIndex];
+
+        // ==========================================
+        // DATABASE DATA CONVERSION
+        // ==========================================
+
+        function getComponentName(component) {
+            return component.component_name;
+        }
+
+        function getAssessmentName(assessment) {
+            return assessment.assessment_name || "";
+        }
+
+        function getAssessmentDate(assessment) {
+            return assessment.assessment_date || "";
+        }
+
+        function getAssessmentEarned(assessment) {
+
+            return assessment.points_earned === null ||
+                assessment.points_earned === undefined
+                ? ""
+                : assessment.points_earned;
+        }
+
+        function getAssessmentPossible(assessment) {
+
+            return assessment.points_possible === null ||
+                assessment.points_possible === undefined
+                ? ""
+                : assessment.points_possible;
+        }
 
 
-        // DISPLAY SUBJECT INFORMATION
+        // ==========================================
+        // LOAD SUBJECT INFORMATION
+        // ==========================================
 
-        if (grade && semester && period && subject) {
+        async function loadSubject() {
+
+            if (!grade || !semester || !period || !subjectId) {
+
+                document.getElementById("subjectName").textContent =
+                    "Subject Not Found";
+
+                document.getElementById("subjectTeacher").textContent =
+                    "We couldn't find this subject.";
+
+                document.getElementById("gradebookContext").textContent =
+                    "Please return to your subject list and try again.";
+
+                return false;
+            }
+
+            subject = await db.getSubjectById(subjectId);
+
+            if (!subject) {
+
+                document.getElementById("subjectName").textContent =
+                    "Subject Not Found";
+
+                document.getElementById("subjectTeacher").textContent =
+                    "We couldn't find this subject.";
+
+                document.getElementById("gradebookContext").textContent =
+                    "Please return to your subject list and try again.";
+
+                return false;
+            }
+
+            // Make sure the subject matches the URL context.
+
+            if (
+                Number(subject.grade_level) !== Number(grade) ||
+                Number(subject.semester) !== Number(semester) ||
+                subject.grading_period !== period
+            ) {
+
+                document.getElementById("subjectName").textContent =
+                    "Subject Not Found";
+
+                document.getElementById("subjectTeacher").textContent =
+                    "The subject does not match the selected academic period.";
+
+                return false;
+            }
 
             document.getElementById("subjectName").textContent =
-                subject.name;
+                subject.subject_name;
 
             document.getElementById("subjectTeacher").textContent =
                 "Teacher: " + (subject.teacher || "Not specified");
@@ -204,140 +297,155 @@
                 " | Semester " + semester +
                 " | " + period;
 
-        } else {
-
-            document.getElementById("subjectName").textContent =
-                "Subject Not Found";
-
-            document.getElementById("subjectTeacher").textContent =
-                "We couldn't find this subject.";
-
-            document.getElementById("gradebookContext").textContent =
-                "Please return to your subject list and try again.";
+            return true;
         }
 
 
-        // STORAGE KEYS
+        // ==========================================
+        // LOAD GRADING COMPONENTS
+        // ==========================================
 
-        const componentStorageKey =
-            "aralyticsComponents_G" + grade +
-            "_S" + semester +
-            "_" + period +
-            "_Subject" + subjectIndex;
+        async function loadComponents() {
 
-        const assessmentStorageKey =
-            "aralyticsAssessments_G" + grade +
-            "_S" + semester +
-            "_" + period +
-            "_Subject" + subjectIndex;
+            components = await db.getComponents(subjectId);
 
+            // Create default components for a new gradebook.
 
-        // SUBJECT GRADE STORAGE KEY
+            if (components.length === 0) {
 
-        const subjectGradeStorageKey = subject
-            ? "aralyticsSubjectGrade_G" + grade +
-                "_S" + semester +
-                "_" + period +
-                "_" + encodeURIComponent(subject.name.trim().toLowerCase())
-            : null;
-
-
-        let components = [];
-        let assessments = {};
-
-
-        // LOAD AND SAVE ASSESSMENTS
-
-        function loadAssessments() {
-
-            const savedAssessments =
-                localStorage.getItem(assessmentStorageKey);
-
-            assessments = savedAssessments
-                ? JSON.parse(savedAssessments)
-                : {};
-
-            components.forEach((component, index) => {
-                if (!assessments[index]) {
-                    assessments[index] = [];
-                }
-            });
-        }
-
-        function saveAssessments() {
-
-            localStorage.setItem(
-                assessmentStorageKey,
-                JSON.stringify(assessments)
-            );
-        }
-
-
-        // LOAD AND SAVE COMPONENTS
-
-        function loadComponents() {
-
-            const savedComponents =
-                localStorage.getItem(componentStorageKey);
-
-            if (savedComponents) {
-
-                components = JSON.parse(savedComponents);
-
-            } else {
-
-                components = [
-                    { name: "Written Works", weight: 30 },
-                    { name: "Performance Tasks", weight: 40 },
-                    { name: "Examinations", weight: 30 }
+                const defaultComponents = [
+                    {
+                        component_name: "Written Works",
+                        weight: 30,
+                        display_order: 0
+                    },
+                    {
+                        component_name: "Performance Tasks",
+                        weight: 40,
+                        display_order: 1
+                    },
+                    {
+                        component_name: "Examinations",
+                        weight: 30,
+                        display_order: 2
+                    }
                 ];
 
-                saveComponents();
+                await db.saveComponents(
+                    subjectId,
+                    defaultComponents
+                );
+
+                components = await db.getComponents(subjectId);
             }
-        }
 
-        function saveComponents() {
+            // Keep components in their intended order.
 
-            localStorage.setItem(
-                componentStorageKey,
-                JSON.stringify(components)
+            components.sort(
+                (a, b) => a.display_order - b.display_order
             );
         }
 
 
-        // SAVE CALCULATED SUBJECT GRADE
+        // ==========================================
+        // LOAD ASSESSMENTS
+        // ==========================================
 
-        function saveSubjectGrade(
-            calculatedGrade,
-            assessmentCount,
-            weightValid
-        ) {
+        async function loadAssessments() {
 
-            if (!subjectGradeStorageKey) {
-                return;
+            assessments = {};
+
+            for (const component of components) {
+
+                const savedAssessments =
+                    await db.getAssessments(component.id);
+
+                assessments[component.id] = savedAssessments || [];
+
+                assessments[component.id].sort(
+                    (a, b) => a.display_order - b.display_order
+                );
             }
+        }
 
-            if (calculatedGrade === null) {
 
-                localStorage.removeItem(subjectGradeStorageKey);
-                return;
-            }
+        // ==========================================
+        // SAVE GRADING COMPONENTS
+        // ==========================================
 
-            const gradeRecord = {
-                grade: calculatedGrade,
-                gradedAssessments: assessmentCount,
-                weightValid: weightValid,
-                updatedAt: new Date().toISOString()
-            };
+        async function persistComponents() {
 
-            localStorage.setItem(
-                subjectGradeStorageKey,
-                JSON.stringify(gradeRecord)
+            const data = components.map((component, index) => ({
+                id: component.id,
+                component_name: component.component_name,
+                weight: Number(component.weight),
+                display_order: index
+            }));
+
+            await db.saveComponents(subjectId, data);
+
+            components = await db.getComponents(subjectId);
+
+            components.sort(
+                (a, b) => a.display_order - b.display_order
+            );
+
+            await loadAssessments();
+        }
+
+
+        // ==========================================
+        // SAVE ASSESSMENTS
+        // ==========================================
+
+        async function persistAssessments(componentId) {
+
+            const componentAssessments =
+                assessments[componentId] || [];
+
+            const data = componentAssessments.map(
+                (assessment, index) => ({
+
+                    id: assessment.id,
+
+                    assessment_name:
+                        assessment.assessment_name || "",
+
+                    assessment_date:
+                        assessment.assessment_date || null,
+
+                    points_earned:
+                        assessment.points_earned === "" ||
+                        assessment.points_earned === null ||
+                        assessment.points_earned === undefined
+                            ? null
+                            : Number(assessment.points_earned),
+
+                    points_possible:
+                        assessment.points_possible === "" ||
+                        assessment.points_possible === null ||
+                        assessment.points_possible === undefined
+                            ? null
+                            : Number(assessment.points_possible),
+
+                    display_order: index
+                })
+            );
+
+            await db.saveAssessments(componentId, data);
+
+            assessments[componentId] =
+                await db.getAssessments(componentId);
+
+            assessments[componentId].sort(
+                (a, b) => a.display_order - b.display_order
             );
         }
 
 
+        // ==========================================
         // DISPLAY GRADING COMPONENTS
+        // ==========================================
 
         function displayComponents() {
 
@@ -351,62 +459,129 @@
                 const item = document.createElement("div");
                 item.className = "component-item";
 
+                // Component name
+
                 const nameInput = document.createElement("input");
+
                 nameInput.type = "text";
-                nameInput.value = component.name;
+                nameInput.value = getComponentName(component);
                 nameInput.placeholder = "Component name";
 
-                nameInput.onchange = () => {
+                nameInput.onchange = async () => {
 
-                    components[index].name =
-                        nameInput.value.trim();
+                    const newName = nameInput.value.trim();
 
-                    saveComponents();
-                    displayAssessmentGroups();
+                    if (!newName) {
+
+                        alert("Please enter a component name.");
+
+                        nameInput.value =
+                            component.component_name;
+
+                        return;
+                    }
+
+                    component.component_name = newName;
+
+                    try {
+
+                        await persistComponents();
+
+                        displayComponents();
+
+                    } catch (error) {
+
+                        showError(error);
+                    }
                 };
 
+
+                // Component weight
+
                 const weightInput = document.createElement("input");
+
                 weightInput.type = "number";
                 weightInput.className = "component-weight";
                 weightInput.min = "0";
                 weightInput.max = "100";
                 weightInput.value = component.weight;
 
-                weightInput.onchange = () => {
+                weightInput.onchange = async () => {
 
                     const value = Number(weightInput.value);
 
                     if (
+                        weightInput.value === "" ||
+                        !Number.isFinite(value) ||
                         value < 0 ||
-                        value > 100 ||
-                        weightInput.value === ""
+                        value > 100
                     ) {
 
-                        alert("Please enter a percentage between 0 and 100.");
+                        alert(
+                            "Please enter a percentage between 0 and 100."
+                        );
 
-                        weightInput.value = components[index].weight;
+                        weightInput.value = component.weight;
+
                         return;
                     }
 
-                    components[index].weight = value;
+                    component.weight = value;
 
-                    saveComponents();
-                    updateTotalWeight();
-                    displayAssessmentGroups();
+                    try {
+
+                        await persistComponents();
+
+                        displayComponents();
+
+                        await updateComponentAverages();
+
+                    } catch (error) {
+
+                        showError(error);
+                    }
                 };
 
-                const deleteButton = document.createElement("button");
+
+                // Delete component
+
+                const deleteButton =
+                    document.createElement("button");
+
                 deleteButton.className = "delete-component";
                 deleteButton.textContent = "×";
                 deleteButton.title = "Remove component";
 
-                deleteButton.onclick = () => {
+                deleteButton.onclick = async () => {
 
-                    components.splice(index, 1);
+                    const confirmed = confirm(
+                        "Remove this grading component? Its assessments will also be deleted."
+                    );
 
-                    saveComponents();
-                    displayComponents();
+                    if (!confirmed) return;
+
+                    try {
+
+                        await db.deleteComponent(component.id);
+
+                        components.splice(index, 1);
+
+                        delete assessments[component.id];
+
+                        components = await db.getComponents(subjectId);
+
+                        await loadAssessments();
+
+                        displayComponents();
+
+                        await updateComponentAverages();
+
+                    } catch (error) {
+
+                        showError(error);
+                    }
                 };
+
 
                 item.appendChild(nameInput);
                 item.appendChild(weightInput);
@@ -416,11 +591,14 @@
             });
 
             updateTotalWeight();
+
             displayAssessmentGroups();
         }
 
 
+        // ==========================================
         // DISPLAY ASSESSMENT GROUPS
+        // ==========================================
 
         function displayAssessmentGroups() {
 
@@ -429,34 +607,47 @@
 
             assessmentList.innerHTML = "";
 
-            components.forEach((component, index) => {
+            components.forEach((component) => {
+
+                const componentId = component.id;
 
                 const group = document.createElement("div");
                 group.className = "assessment-component";
+
+
+                // Header
 
                 const header = document.createElement("div");
                 header.className = "assessment-component-header";
 
                 const title = document.createElement("h3");
-                title.textContent = component.name;
+                title.textContent = component.component_name;
 
                 const weight = document.createElement("p");
+
                 weight.textContent =
                     "Component Weight: " + component.weight + "%";
 
                 const average = document.createElement("p");
+
                 average.className = "assessment-average";
-                average.id = "componentAverage" + index;
+                average.id = "componentAverage_" + componentId;
                 average.textContent = "Component Average: —";
 
                 header.appendChild(title);
                 header.appendChild(weight);
                 header.appendChild(average);
 
+
+                // Assessment table
+
                 const tableWrapper = document.createElement("div");
-                tableWrapper.className = "assessment-table-wrapper";
+
+                tableWrapper.className =
+                    "assessment-table-wrapper";
 
                 const table = document.createElement("table");
+
                 table.className = "assessment-table";
 
                 table.innerHTML = `
@@ -474,120 +665,292 @@
 
                 const tbody = table.querySelector("tbody");
 
-                if (!assessments[index]) {
-                    assessments[index] = [];
-                }
-
-                assessments[index].forEach((assessment, assessmentIndex) => {
-
-                    const row = document.createElement("tr");
-
-                    const nameCell = document.createElement("td");
-                    const nameInput = document.createElement("input");
-
-                    nameInput.type = "text";
-                    nameInput.placeholder = "e.g. Quiz 1";
-                    nameInput.value = assessment.name;
-
-                    nameInput.onchange = () => {
-
-                        assessment.name = nameInput.value;
-                        saveAssessments();
-                    };
-
-                    nameCell.appendChild(nameInput);
+                const componentAssessments =
+                    assessments[componentId] || [];
 
 
-                    const dateCell = document.createElement("td");
-                    const dateInput = document.createElement("input");
+                componentAssessments.forEach(
+                    (assessment, assessmentIndex) => {
 
-                    dateInput.type = "date";
-                    dateInput.value = assessment.date;
-
-                    dateInput.onchange = () => {
-
-                        assessment.date = dateInput.value;
-                        saveAssessments();
-                    };
-
-                    dateCell.appendChild(dateInput);
+                        const row = document.createElement("tr");
 
 
-                    const earnedCell = document.createElement("td");
-                    const earnedInput = document.createElement("input");
+                        // Assessment name
 
-                    earnedInput.type = "number";
-                    earnedInput.min = "0";
-                    earnedInput.placeholder = "0";
-                    earnedInput.value = assessment.earned;
+                        const nameCell = document.createElement("td");
 
-                    earnedInput.onchange = () => {
+                        const nameInput =
+                            document.createElement("input");
 
-                        assessment.earned = earnedInput.value;
+                        nameInput.type = "text";
+                        nameInput.placeholder = "e.g. Quiz 1";
+                        nameInput.value =
+                            getAssessmentName(assessment);
 
-                        saveAssessments();
-                        updateComponentAverages();
-                    };
+                        nameInput.onchange = async () => {
 
-                    earnedCell.appendChild(earnedInput);
+                            assessment.assessment_name =
+                                nameInput.value;
 
+                            try {
 
-                    const possibleCell = document.createElement("td");
-                    const possibleInput = document.createElement("input");
+                                await persistAssessments(componentId);
 
-                    possibleInput.type = "number";
-                    possibleInput.min = "0";
-                    possibleInput.placeholder = "0";
-                    possibleInput.value = assessment.possible;
+                                await updateComponentAverages();
 
-                    possibleInput.onchange = () => {
+                            } catch (error) {
 
-                        assessment.possible = possibleInput.value;
+                                showError(error);
+                            }
+                        };
 
-                        saveAssessments();
-                        updateComponentAverages();
-                    };
-
-                    possibleCell.appendChild(possibleInput);
+                        nameCell.appendChild(nameInput);
 
 
-                    const deleteCell = document.createElement("td");
-                    const deleteButton = document.createElement("button");
+                        // Assessment date
 
-                    deleteButton.className = "assessment-delete";
-                    deleteButton.textContent = "×";
-                    deleteButton.title = "Delete assessment";
+                        const dateCell = document.createElement("td");
 
-                    deleteButton.onclick = () => {
+                        const dateInput =
+                            document.createElement("input");
 
-                        assessments[index].splice(assessmentIndex, 1);
+                        dateInput.type = "date";
+                        dateInput.value =
+                            getAssessmentDate(assessment);
 
-                        saveAssessments();
-                        displayAssessmentGroups();
-                    };
+                        dateInput.onchange = async () => {
 
-                    deleteCell.appendChild(deleteButton);
+                            assessment.assessment_date =
+                                dateInput.value || null;
+
+                            try {
+
+                                await persistAssessments(componentId);
+
+                            } catch (error) {
+
+                                showError(error);
+                            }
+                        };
+
+                        dateCell.appendChild(dateInput);
 
 
-                    row.appendChild(nameCell);
-                    row.appendChild(dateCell);
-                    row.appendChild(earnedCell);
-                    row.appendChild(possibleCell);
-                    row.appendChild(deleteCell);
+                        // Points earned
 
-                    tbody.appendChild(row);
-                });
+                        const earnedCell = document.createElement("td");
 
+                        const earnedInput =
+                            document.createElement("input");
+
+                        earnedInput.type = "number";
+                        earnedInput.min = "0";
+                        earnedInput.placeholder = "0";
+
+                        earnedInput.value =
+                            getAssessmentEarned(assessment);
+
+                        earnedInput.onchange = async () => {
+
+                            const value = earnedInput.value;
+
+                            if (
+                                value !== "" &&
+                                (
+                                    !Number.isFinite(Number(value)) ||
+                                    Number(value) < 0
+                                )
+                            ) {
+
+                                alert(
+                                    "Points earned must be a valid non-negative number."
+                                );
+
+                                earnedInput.value =
+                                    getAssessmentEarned(assessment);
+
+                                return;
+                            }
+
+                            const possible =
+                                getAssessmentPossible(assessment);
+
+                            if (
+                                value !== "" &&
+                                possible !== "" &&
+                                Number(value) > Number(possible)
+                            ) {
+
+                                alert(
+                                    "Points earned cannot exceed points possible."
+                                );
+
+                                earnedInput.value =
+                                    getAssessmentEarned(assessment);
+
+                                return;
+                            }
+
+                            assessment.points_earned =
+                                value === "" ? null : Number(value);
+
+                            try {
+
+                                await persistAssessments(componentId);
+
+                                await updateComponentAverages();
+
+                            } catch (error) {
+
+                                showError(error);
+                            }
+                        };
+
+                        earnedCell.appendChild(earnedInput);
+
+
+                        // Points possible
+
+                        const possibleCell = document.createElement("td");
+
+                        const possibleInput =
+                            document.createElement("input");
+
+                        possibleInput.type = "number";
+                        possibleInput.min = "0";
+                        possibleInput.placeholder = "0";
+
+                        possibleInput.value =
+                            getAssessmentPossible(assessment);
+
+                        possibleInput.onchange = async () => {
+
+                            const value = possibleInput.value;
+
+                            if (
+                                value !== "" &&
+                                (
+                                    !Number.isFinite(Number(value)) ||
+                                    Number(value) <= 0
+                                )
+                            ) {
+
+                                alert(
+                                    "Points possible must be greater than zero."
+                                );
+
+                                possibleInput.value =
+                                    getAssessmentPossible(assessment);
+
+                                return;
+                            }
+
+                            const earned =
+                                getAssessmentEarned(assessment);
+
+                            if (
+                                value !== "" &&
+                                earned !== "" &&
+                                Number(earned) > Number(value)
+                            ) {
+
+                                alert(
+                                    "Points possible cannot be lower than points earned."
+                                );
+
+                                possibleInput.value =
+                                    getAssessmentPossible(assessment);
+
+                                return;
+                            }
+
+                            assessment.points_possible =
+                                value === "" ? null : Number(value);
+
+                            try {
+
+                                await persistAssessments(componentId);
+
+                                await updateComponentAverages();
+
+                            } catch (error) {
+
+                                showError(error);
+                            }
+                        };
+
+                        possibleCell.appendChild(possibleInput);
+
+
+                        // Delete assessment
+
+                        const deleteCell = document.createElement("td");
+
+                        const deleteButton =
+                            document.createElement("button");
+
+                        deleteButton.className = "assessment-delete";
+                        deleteButton.textContent = "×";
+                        deleteButton.title = "Delete assessment";
+
+                        deleteButton.onclick = async () => {
+
+                            try {
+
+                                if (assessment.id) {
+
+                                    await db.deleteAssessment(
+                                        assessment.id
+                                    );
+
+                                } else {
+
+                                    assessments[componentId].splice(
+                                        assessmentIndex,
+                                        1
+                                    );
+                                }
+
+                                assessments[componentId] =
+                                    await db.getAssessments(componentId);
+
+                                displayAssessmentGroups();
+
+                                await updateComponentAverages();
+
+                            } catch (error) {
+
+                                showError(error);
+                            }
+                        };
+
+                        deleteCell.appendChild(deleteButton);
+
+
+                        row.appendChild(nameCell);
+                        row.appendChild(dateCell);
+                        row.appendChild(earnedCell);
+                        row.appendChild(possibleCell);
+                        row.appendChild(deleteCell);
+
+                        tbody.appendChild(row);
+                    }
+                );
+
+
+                // Add assessment button
 
                 const actions = document.createElement("div");
+
                 actions.className = "assessment-actions";
 
                 const addButton = document.createElement("button");
+
                 addButton.className = "add-button";
                 addButton.textContent = "+ Add Assessment";
 
                 addButton.onclick = () => {
-                    addAssessment(index);
+                    addAssessment(componentId);
                 };
 
                 actions.appendChild(addButton);
@@ -605,97 +968,123 @@
         }
 
 
+        // ==========================================
         // ADD ASSESSMENT
+        // ==========================================
 
-        function addAssessment(componentIndex) {
+        async function addAssessment(componentId) {
 
-            if (!assessments[componentIndex]) {
-                assessments[componentIndex] = [];
+            if (!assessments[componentId]) {
+                assessments[componentId] = [];
             }
 
-            assessments[componentIndex].push({
-                name: "",
-                date: "",
-                earned: "",
-                possible: ""
+            assessments[componentId].push({
+
+                assessment_name: "",
+                assessment_date: null,
+                points_earned: null,
+                points_possible: null,
+                display_order: assessments[componentId].length
+
             });
 
-            saveAssessments();
-            displayAssessmentGroups();
+            try {
+
+                await persistAssessments(componentId);
+
+                displayAssessmentGroups();
+
+                await updateComponentAverages();
+
+            } catch (error) {
+
+                showError(error);
+            }
         }
 
 
+        // ==========================================
         // CALCULATE COMPONENT AVERAGES
+        // ==========================================
 
-        function updateComponentAverages() {
+        async function updateComponentAverages() {
 
             let weightedTotal = 0;
             let gradedWeight = 0;
             let gradedAssessmentCount = 0;
 
-            components.forEach((component, index) => {
+            components.forEach((component) => {
 
-                const componentAssessments = assessments[index] || [];
+                const componentAssessments =
+                    assessments[component.id] || [];
 
                 let totalEarned = 0;
                 let totalPossible = 0;
 
-                componentAssessments.forEach(assessment => {
+                componentAssessments.forEach((assessment) => {
+
+                    const earned = assessment.points_earned;
+                    const possible = assessment.points_possible;
 
                     if (
-                        assessment.earned !== "" &&
-                        assessment.possible !== "" &&
-                        Number(assessment.possible) > 0
+                        earned !== null &&
+                        earned !== undefined &&
+                        possible !== null &&
+                        possible !== undefined &&
+                        Number.isFinite(Number(earned)) &&
+                        Number.isFinite(Number(possible)) &&
+                        Number(possible) > 0 &&
+                        Number(earned) >= 0 &&
+                        Number(earned) <= Number(possible)
                     ) {
 
-                        const earned = Number(assessment.earned);
-                        const possible = Number(assessment.possible);
+                        totalEarned += Number(earned);
+                        totalPossible += Number(possible);
 
-                        if (
-                            Number.isFinite(earned) &&
-                            Number.isFinite(possible) &&
-                            earned >= 0 &&
-                            earned <= possible
-                        ) {
-
-                            totalEarned += earned;
-                            totalPossible += possible;
-
-                            gradedAssessmentCount++;
-                        }
+                        gradedAssessmentCount++;
                     }
                 });
 
                 const averageElement =
-                    document.getElementById("componentAverage" + index);
+                    document.getElementById(
+                        "componentAverage_" + component.id
+                    );
 
                 if (!averageElement) return;
 
                 if (totalPossible > 0) {
 
-                    const average = (totalEarned / totalPossible) * 100;
+                    const average =
+                        (totalEarned / totalPossible) * 100;
 
                     averageElement.textContent =
-                        "Component Average: " + average.toFixed(2) + "%";
+                        "Component Average: " +
+                        average.toFixed(2) + "%";
 
-                    weightedTotal += average * component.weight;
-                    gradedWeight += component.weight;
+                    weightedTotal +=
+                        average * Number(component.weight);
+
+                    gradedWeight += Number(component.weight);
 
                 } else {
 
-                    averageElement.textContent = "Component Average: —";
+                    averageElement.textContent =
+                        "Component Average: —";
                 }
             });
 
 
-            const currentGradeElement =
-                document.getElementById("currentGrade");
+            // Calculate overall subject grade.
 
             let calculatedGrade = null;
 
+            const currentGradeElement =
+                document.getElementById("currentGrade");
+
             if (gradedWeight > 0) {
 
-                calculatedGrade = weightedTotal / gradedWeight;
+                calculatedGrade =
+                    weightedTotal / gradedWeight;
 
                 currentGradeElement.textContent =
                     calculatedGrade.toFixed(2) + "%";
@@ -710,8 +1099,11 @@
                 gradedAssessmentCount;
 
 
+            // Check whether configured weights total 100%.
+
             const totalConfiguredWeight = components.reduce(
-                (sum, component) => sum + Number(component.weight),
+                (sum, component) =>
+                    sum + Number(component.weight),
                 0
             );
 
@@ -719,34 +1111,72 @@
                 Math.abs(totalConfiguredWeight - 100) < 0.000001;
 
 
-            saveSubjectGrade(
-                calculatedGrade,
-                gradedAssessmentCount,
-                weightValid
-            );
+            // Save the calculated grade without overwriting
+            // the student's manual grade.
+
+            try {
+
+                const existingGrade =
+                    await db.getSubjectGrade(subjectId);
+
+                await db.saveSubjectGrade(subjectId, {
+
+                    manual_grade:
+                        existingGrade?.manual_grade ?? null,
+
+                    calculated_grade: calculatedGrade,
+
+                    graded_assessments: gradedAssessmentCount,
+
+                    weight_valid: weightValid
+
+                });
+
+            } catch (error) {
+
+                showError(error);
+            }
         }
 
 
+        // ==========================================
         // ADD GRADING COMPONENT
+        // ==========================================
 
-        function addComponent() {
+        async function addComponent() {
 
             components.push({
-                name: "New Component",
-                weight: 0
+
+                component_name: "New Component",
+                weight: 0,
+                display_order: components.length
+
             });
 
-            saveComponents();
-            displayComponents();
+            try {
+
+                await persistComponents();
+
+                displayComponents();
+
+                await updateComponentAverages();
+
+            } catch (error) {
+
+                showError(error);
+            }
         }
 
 
+        // ==========================================
         // UPDATE TOTAL WEIGHT
+        // ==========================================
 
         function updateTotalWeight() {
 
             const total = components.reduce(
-                (sum, component) => sum + Number(component.weight),
+                (sum, component) =>
+                    sum + Number(component.weight),
                 0
             );
 
@@ -773,11 +1203,49 @@
         }
 
 
+        // ==========================================
         // INITIALIZE GRADEBOOK
+        // ==========================================
 
-        loadComponents();
-        loadAssessments();
-        displayComponents();
+        async function initializeGradebook() {
+
+            try {
+
+                if (!db) {
+
+                    throw new Error(
+                        "The Aralytics database connection is unavailable."
+                    );
+                }
+
+                const subjectFound = await loadSubject();
+
+                if (!subjectFound) return;
+
+                await loadComponents();
+
+                await loadAssessments();
+
+                displayComponents();
+
+                await updateComponentAverages();
+
+                isInitialized = true;
+
+            } catch (error) {
+
+                showError(error);
+
+                document.getElementById("subjectName").textContent =
+                    "Unable to Load Gradebook";
+
+                document.getElementById("gradebookContext").textContent =
+                    "Please refresh the page and try again.";
+            }
+        }
+
+
+        initializeGradebook();
 
     </script>
 
