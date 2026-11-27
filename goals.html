@@ -308,7 +308,14 @@
 
     </main>
 
+    <!-- SUPABASE CONNECTION -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
 
+    <!-- AUTHENTICATION PROTECTION -->
+    <script src="js/auth-guard.js"></script>
+
+    <!-- EXISTING GOALS FUNCTIONALITY -->
     <script>
 
         // CURRENT ACADEMIC CONTEXT
@@ -818,25 +825,24 @@
                 inputRow.className = "goal-input-row";
 
 
-              
                 const inputGroup = document.createElement("div");
-inputGroup.className = "goal-input-group";
+                inputGroup.className = "goal-input-group";
 
-const label = document.createElement("label");
-label.textContent = "Target Grade (%)";
+                const label = document.createElement("label");
+                label.textContent = "Target Grade (%)";
 
-const input = document.createElement("input");
-input.type = "number";
-input.min = "0";
-input.max = "100";
-input.step = "0.01";
-input.placeholder = "Enter target grade";
-input.value = savedTarget !== null
-    ? savedTarget
-    : "";
+                const input = document.createElement("input");
+                input.type = "number";
+                input.min = "0";
+                input.max = "100";
+                input.step = "0.01";
+                input.placeholder = "Enter target grade";
+                input.value = savedTarget !== null
+                    ? savedTarget
+                    : "";
 
-inputGroup.appendChild(label);
-inputGroup.appendChild(input);
+                inputGroup.appendChild(label);
+                inputGroup.appendChild(input);
 
 
                 const saveButton = document.createElement("button");
