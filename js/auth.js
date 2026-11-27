@@ -19,6 +19,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const showRegister = document.getElementById("showRegister");
     const showLogin = document.getElementById("showLogin");
 
+    // Check Supabase initialization
+    if (!supabase) {
+        authMessage.textContent =
+            "Unable to connect to Aralytics. Please refresh the page.";
+        return;
+    }
+
     // Switch to registration view
     showRegister.addEventListener("click", (event) => {
         event.preventDefault();
@@ -67,6 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
         authMessage.textContent = "";
 
         try {
+            // Authenticate student
             const { data, error } = await supabase.auth.signInWithPassword({
                 email: email,
                 password: password
@@ -76,10 +84,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 throw error;
             }
 
-            // Check whether the student has completed profile setup
+            // Retrieve the student's complete profile
             const { data: profile, error: profileError } = await supabase
                 .from("profiles")
-                .select("grade_level")
+                .select("full_name, grade_level, semester, grading_period")
                 .eq("id", data.user.id)
                 .maybeSingle();
 
@@ -87,11 +95,43 @@ document.addEventListener("DOMContentLoaded", () => {
                 throw profileError;
             }
 
-            if (!profile || profile.grade_level === null) {
+            // Check whether profile setup is complete
+            if (
+                !profile ||
+                profile.grade_level === null ||
+                profile.semester === null ||
+                profile.grading_period === null
+            ) {
                 window.location.href = "profile.html";
-            } else {
-                window.location.href = "dashboard.html";
+                return;
             }
+
+            // Save profile information locally
+            localStorage.setItem("aralyticsUserProfile", JSON.stringify({
+                fullName: profile.full_name,
+                grade: profile.grade_level,
+                semester: profile.semester,
+                period: profile.grading_period
+            }));
+
+            // Update current academic context
+            localStorage.setItem(
+                "aralyticsCurrentGrade",
+                profile.grade_level
+            );
+
+            localStorage.setItem(
+                "aralyticsCurrentSemester",
+                profile.semester
+            );
+
+            localStorage.setItem(
+                "aralyticsCurrentPeriod",
+                profile.grading_period
+            );
+
+            // Proceed to Dashboard
+            window.location.href = "dashboard.html";
 
         } catch (error) {
             authMessage.textContent =
@@ -172,11 +212,5 @@ document.addEventListener("DOMContentLoaded", () => {
             registerButton.textContent = "Create Account";
         }
     });
-
-    // Check Supabase initialization
-    if (!supabase) {
-        authMessage.textContent =
-            "Unable to connect to Aralytics. Please refresh the page.";
-    }
 
 });
