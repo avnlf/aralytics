@@ -157,6 +157,12 @@
 
     </main>
 
+    <!-- SUPABASE AND AUTHENTICATION PROTECTION -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/auth-guard.js"></script>
+
+    <!-- EXISTING GRADEBOOK JAVASCRIPT -->
     <script>
 
         // GET INFORMATION FROM THE URL
@@ -225,9 +231,7 @@
             "_Subject" + subjectIndex;
 
 
-        // NEW: SUBJECT GRADE STORAGE KEY
-        // Uses the subject name so the saved grade is associated
-        // with the correct subject and grading period.
+        // SUBJECT GRADE STORAGE KEY
 
         const subjectGradeStorageKey = subject
             ? "aralyticsSubjectGrade_G" + grade +
@@ -300,7 +304,7 @@
         }
 
 
-        // NEW: SAVE CALCULATED SUBJECT GRADE
+        // SAVE CALCULATED SUBJECT GRADE
 
         function saveSubjectGrade(
             calculatedGrade,
@@ -311,9 +315,6 @@
             if (!subjectGradeStorageKey) {
                 return;
             }
-
-            // If there are no graded assessments,
-            // remove any previously saved grade.
 
             if (calculatedGrade === null) {
 
@@ -476,13 +477,9 @@
                     assessments[index] = [];
                 }
 
-                // DISPLAY EXISTING ASSESSMENTS
-
                 assessments[index].forEach((assessment, assessmentIndex) => {
 
                     const row = document.createElement("tr");
-
-                    // Assessment name
 
                     const nameCell = document.createElement("td");
                     const nameInput = document.createElement("input");
@@ -500,8 +497,6 @@
                     nameCell.appendChild(nameInput);
 
 
-                    // Date
-
                     const dateCell = document.createElement("td");
                     const dateInput = document.createElement("input");
 
@@ -516,8 +511,6 @@
 
                     dateCell.appendChild(dateInput);
 
-
-                    // Points earned
 
                     const earnedCell = document.createElement("td");
                     const earnedInput = document.createElement("input");
@@ -538,8 +531,6 @@
                     earnedCell.appendChild(earnedInput);
 
 
-                    // Points possible
-
                     const possibleCell = document.createElement("td");
                     const possibleInput = document.createElement("input");
 
@@ -558,8 +549,6 @@
 
                     possibleCell.appendChild(possibleInput);
 
-
-                    // Delete assessment
 
                     const deleteCell = document.createElement("td");
                     const deleteButton = document.createElement("button");
@@ -588,8 +577,6 @@
                     tbody.appendChild(row);
                 });
 
-
-                // ADD ASSESSMENT BUTTON
 
                 const actions = document.createElement("div");
                 actions.className = "assessment-actions";
@@ -638,7 +625,6 @@
 
 
         // CALCULATE COMPONENT AVERAGES
-        // ALSO SAVE THE SUBJECT GRADE FOR GWA
 
         function updateComponentAverages() {
 
@@ -701,8 +687,6 @@
             });
 
 
-            // CALCULATE OVERALL SUBJECT GRADE
-
             const currentGradeElement =
                 document.getElementById("currentGrade");
 
@@ -721,13 +705,9 @@
             }
 
 
-            // UPDATE GRADED ASSESSMENTS COUNT
-
             document.getElementById("gradedAssessments").textContent =
                 gradedAssessmentCount;
 
-
-            // CHECK WHETHER THE CONFIGURED WEIGHTS TOTAL 100%
 
             const totalConfiguredWeight = components.reduce(
                 (sum, component) => sum + Number(component.weight),
@@ -737,8 +717,6 @@
             const weightValid =
                 Math.abs(totalConfiguredWeight - 100) < 0.000001;
 
-
-            // SAVE THE SUBJECT GRADE FOR THE GWA SCREEN
 
             saveSubjectGrade(
                 calculatedGrade,
