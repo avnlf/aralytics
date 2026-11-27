@@ -61,14 +61,16 @@
                     <option value="Finals">Finals</option>
                 </select>
 
-                <button type="submit" class="login-button">
+                <button type="submit" class="login-button" id="saveProfileButton">
                     Save Profile
                 </button>
 
             </form>
 
+            <p id="profileMessage" role="status" aria-live="polite"></p>
+
             <p class="register-text">
-                Already have a profile?
+                Already have an account?
                 <a href="login.html">Log In</a>
             </p>
 
@@ -76,38 +78,168 @@
 
     </main>
 
+    <!-- SUPABASE LIBRARY -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- SUPABASE CONNECTION -->
+    <script src="js/supabase.js"></script>
+
     <script>
 
-        document.getElementById("profileForm").addEventListener("submit", function(event) {
+        document.addEventListener("DOMContentLoaded", async function() {
 
-            event.preventDefault();
+            const supabase = window.supabaseClient;
 
-            const profile = {
-                fullName: document.getElementById("fullName").value.trim(),
-                grade: document.getElementById("gradeLevel").value,
-                semester: document.getElementById("semester").value,
-                period: document.getElementById("period").value
-            };
+            const profileForm = document.getElementById("profileForm");
+            const saveButton = document.getElementById("saveProfileButton");
+            const profileMessage = document.getElementById("profileMessage");
 
-            if (!profile.fullName || !profile.grade ||
-                !profile.semester || !profile.period) {
+            let currentUser = null;
 
-                alert("Please complete all fields.");
-                return;
+            // CHECK LOGIN SESSION
+            async function initializeProfile() {
+
+                try {
+
+                    const { data, error } = await supabase.auth.getSession();
+
+                    if (error) {
+                        throw error;
+                    }
+
+                    currentUser = data.session?.user;
+
+                    // Require a logged-in account
+                    if (!currentUser) {
+                        window.location.href = "login.html";
+                        return;
+                    }
+
+                    // LOAD EXISTING PROFILE
+                    const { data: profile, error: profileError } = await supabase
+                        .from("profiles")
+                        .select("full_name, grade_level, semester, grading_period")
+                        .eq("id", currentUser.id)
+                        .maybeSingle();
+
+                    if (profileError) {
+                        throw profileError;
+                    }
+
+                    // Fill in previously saved information
+                    if (profile) {
+
+                        document.getElementById("fullName").value =
+                            profile.full_name || "";
+
+                        document.getElementById("gradeLevel").value =
+                            profile.grade_level ?? "";
+
+                        document.getElementById("semester").value =
+                            profile.semester ?? "";
+
+                        document.getElementById("period").value =
+                            profile.grading_period || "";
+
+                    }
+
+                } catch (error) {
+
+                    profileMessage.textContent =
+                        "Unable to load your profile: " + error.message;
+
+                }
+
             }
 
-            localStorage.setItem(
-                "aralyticsUserProfile",
-                JSON.stringify(profile)
-            );
+            await initializeProfile();
 
-            localStorage.setItem("aralyticsCurrentGrade", profile.grade);
-            localStorage.setItem("aralyticsCurrentSemester", profile.semester);
-            localStorage.setItem("aralyticsCurrentPeriod", profile.period);
+            // SAVE PROFILE
+            profileForm.addEventListener("submit", async function(event) {
 
-            alert("Your profile has been saved!");
+                event.preventDefault();
 
-            window.location.href = "dashboard.html";
+                if (!currentUser) {
+                    profileMessage.textContent =
+                        "Please log in before saving your profile.";
+                    return;
+                }
+
+                const profile = {
+                    fullName: document.getElementById("fullName").value.trim(),
+                    grade: document.getElementById("gradeLevel").value,
+                    semester: document.getElementById("semester").value,
+                    period: document.getElementById("period").value
+                };
+
+                if (!profile.fullName || !profile.grade ||
+                    !profile.semester || !profile.period) {
+
+                    profileMessage.textContent =
+                        "Please complete all fields.";
+                    return;
+                }
+
+                saveButton.disabled = true;
+                saveButton.textContent = "Saving...";
+                profileMessage.textContent = "";
+
+                try {
+
+                    // SAVE TO SUPABASE
+                    const { error } = await supabase
+                        .from("profiles")
+                        .update({
+                            full_name: profile.fullName,
+                            grade_level: Number(profile.grade),
+                            semester: Number(profile.semester),
+                            grading_period: profile.period,
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq("id", currentUser.id);
+
+                    if (error) {
+                        throw error;
+                    }
+
+                    // UPDATE LOCAL STORAGE FOR EXISTING ARALYTICS FEATURES
+                    localStorage.setItem(
+                        "aralyticsUserProfile",
+                        JSON.stringify(profile)
+                    );
+
+                    localStorage.setItem(
+                        "aralyticsCurrentGrade",
+                        profile.grade
+                    );
+
+                    localStorage.setItem(
+                        "aralyticsCurrentSemester",
+                        profile.semester
+                    );
+
+                    localStorage.setItem(
+                        "aralyticsCurrentPeriod",
+                        profile.period
+                    );
+
+                    alert("Your profile has been saved successfully!");
+
+                    window.location.href = "dashboard.html";
+
+                } catch (error) {
+
+                    profileMessage.textContent =
+                        "Unable to save your profile: " + error.message;
+
+                } finally {
+
+                    saveButton.disabled = false;
+                    saveButton.textContent = "Save Profile";
+
+                }
+
+            });
 
         });
 
