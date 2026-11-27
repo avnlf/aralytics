@@ -203,34 +203,38 @@
     async function saveComponents(subjectId, components) {
         const user = await getCurrentUser();
 
-        // Replace the existing component list.
-        const { error: deleteError } = await supabase
-            .from("grading_components")
-            .delete()
-            .eq("subject_id", subjectId);
-
-        if (deleteError) throw deleteError;
-
-        if (!components.length) {
-            return [];
-        }
-
         const rows = components.map((component, index) => ({
+            ...(component.id ? { id: component.id } : {}),
             user_id: user.id,
             subject_id: subjectId,
-            component_name: String(component.component_name || "").trim(),
+            component_name: String(
+                component.component_name || ""
+            ).trim(),
             weight: Number(component.weight),
             display_order: index
         }));
 
+        if (!rows.length) return [];
+
         const { data, error } = await supabase
             .from("grading_components")
-            .insert(rows)
+            .upsert(rows, { onConflict: "id" })
             .select();
 
         if (error) throw error;
 
         return data;
+    }
+
+    async function deleteComponent(componentId) {
+        await getCurrentUser();
+
+        const { error } = await supabase
+            .from("grading_components")
+            .delete()
+            .eq("id", componentId);
+
+        if (error) throw error;
     }
 
     /* =========================================
@@ -254,43 +258,50 @@
     async function saveAssessments(componentId, assessments) {
         const user = await getCurrentUser();
 
-        const { error: deleteError } = await supabase
-            .from("assessments")
-            .delete()
-            .eq("component_id", componentId);
-
-        if (deleteError) throw deleteError;
-
-        if (!assessments.length) {
-            return [];
-        }
-
         const rows = assessments.map((assessment, index) => ({
+            ...(assessment.id ? { id: assessment.id } : {}),
             user_id: user.id,
             component_id: componentId,
-            assessment_name: String(assessment.assessment_name || ""),
+            assessment_name: String(
+                assessment.assessment_name || ""
+            ),
             assessment_date: assessment.assessment_date || null,
             points_earned:
                 assessment.points_earned === "" ||
-                assessment.points_earned === null
+                assessment.points_earned === null ||
+                assessment.points_earned === undefined
                     ? null
                     : Number(assessment.points_earned),
             points_possible:
                 assessment.points_possible === "" ||
-                assessment.points_possible === null
+                assessment.points_possible === null ||
+                assessment.points_possible === undefined
                     ? null
                     : Number(assessment.points_possible),
             display_order: index
         }));
 
+        if (!rows.length) return [];
+
         const { data, error } = await supabase
             .from("assessments")
-            .insert(rows)
+            .upsert(rows, { onConflict: "id" })
             .select();
 
         if (error) throw error;
 
         return data;
+    }
+
+    async function deleteAssessment(assessmentId) {
+        await getCurrentUser();
+
+        const { error } = await supabase
+            .from("assessments")
+            .delete()
+            .eq("id", assessmentId);
+
+        if (error) throw error;
     }
 
     /* =========================================
@@ -405,9 +416,11 @@
 
         getComponents,
         saveComponents,
+        deleteComponent,
 
         getAssessments,
         saveAssessments,
+        deleteAssessment,
 
         getSubjectGrade,
         saveSubjectGrade,
