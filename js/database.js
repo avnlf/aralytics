@@ -1,8 +1,6 @@
 
-/* =========================================
-   ARALYTICS DATABASE HELPER
-   Supabase academic data operations
-========================================= */
+// Aralytics Database Helper
+// Handles Supabase operations for subjects, gradebooks, assessments, and grades.
 
 (function () {
     const supabase = window.supabaseClient;
@@ -12,9 +10,7 @@
         return;
     }
 
-    /* =========================================
-       AUTHENTICATION AND ACADEMIC CONTEXT
-    ========================================= */
+    // AUTHENTICATION
 
     async function getCurrentUser() {
         const { data, error } = await supabase.auth.getUser();
@@ -27,6 +23,9 @@
 
         return data.user;
     }
+
+
+    // ACADEMIC CONTEXT
 
     function getAcademicContext() {
         const grade = Number(
@@ -42,7 +41,9 @@
         );
 
         if (
-            !Number.isInteger(grade) || grade < 7 || grade > 12 ||
+            !Number.isInteger(grade) ||
+            grade < 7 ||
+            grade > 12 ||
             ![1, 2].includes(semester) ||
             !["Midterms", "Finals"].includes(period)
         ) {
@@ -56,9 +57,8 @@
         };
     }
 
-    /* =========================================
-       SUBJECTS
-    ========================================= */
+
+    // SUBJECTS
 
     async function getSubjects(context = getAcademicContext()) {
         const user = await getCurrentUser();
@@ -74,10 +74,11 @@
 
         if (error) throw error;
 
-        return data;
+        return data || [];
     }
 
-    async function getSemesterSubjects(grade, semester) {
+
+    async function getSubjectsForSemester(grade, semester) {
         const user = await getCurrentUser();
 
         const { data, error } = await supabase
@@ -90,8 +91,9 @@
 
         if (error) throw error;
 
-        return data;
+        return data || [];
     }
+
 
     async function getSubjectById(subjectId) {
         await getCurrentUser();
@@ -100,42 +102,38 @@
             .from("subjects")
             .select("*")
             .eq("id", subjectId)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 
         return data;
     }
 
-    async function addSubject(subject) {
+
+    async function addSubject(subject, context = getAcademicContext()) {
         const user = await getCurrentUser();
-        const context = getAcademicContext();
 
         const name = String(subject.subject_name || "").trim();
-        const teacher = String(subject.teacher || "").trim();
-
-        let units = Number(subject.units);
 
         if (!name) {
             throw new Error("Subject name is required.");
         }
 
+        const units = Number(subject.units);
+
         if (!Number.isFinite(units) || units <= 0) {
             throw new Error("Subject units must be greater than zero.");
         }
 
-        // Check the other grading period for shared units.
-        const semesterSubjects = await getSemesterSubjects(
-            context.grade_level,
-            context.semester
-        );
+        // Prevent duplicate subjects in the same grading period.
+        const existingSubjects = await getSubjects(context);
 
-        const matchingSubject = semesterSubjects.find(item =>
+        const duplicate = existingSubjects.some(item =>
             item.subject_name.trim().toLowerCase() === name.toLowerCase()
         );
 
-        if (matchingSubject) {
-            units = Number(matchingSubject.units);
+        if (duplicate) {
+            throw new Error("This subject already exists.");
         }
 
         const { data, error } = await supabase
@@ -144,7 +142,7 @@
                 user_id: user.id,
                 ...context,
                 subject_name: name,
-                teacher: teacher,
+                teacher: subject.teacher || "",
                 units: units
             })
             .select()
@@ -155,11 +153,15 @@
         return data;
     }
 
-    async function updateSubject(subjectId, changes) {
-        const user = await getCurrentUser();
 
-        // Retrieve the original subject before updating it.
-        const original = await getSubjectById(subjectId);
+    async function updateSubject(subjectId, changes) {
+        await getCurrentUser();
+
+        const existing = await getSubjectById(subjectId);
+
+        if (!existing) {
+            throw new Error("Subject not found.");
+        }
 
         const allowedChanges = {};
 
@@ -174,7 +176,7 @@
         }
 
         if (changes.teacher !== undefined) {
-            allowedChanges.teacher = String(changes.teacher).trim();
+            allowedChanges.teacher = changes.teacher;
         }
 
         if (changes.units !== undefined) {
@@ -185,10 +187,6 @@
             }
 
             allowedChanges.units = units;
-        }
-
-        if (Object.keys(allowedChanges).length === 0) {
-            return original;
         }
 
         allowedChanges.updated_at = new Date().toISOString();
@@ -202,38 +200,31 @@
 
         if (error) throw error;
 
-        // Synchronize units with the matching subject
-        // in the other grading period.
+        // Keep units consistent between Midterms and Finals
+        // for the same subject, grade level, and semester.
         if (changes.units !== undefined) {
-            const semesterSubjects = await getSemesterSubjects(
-                original.grade_level,
-                original.semester
-            );
+            const otherPeriod =
+                existing.grading_period === "Midterms"
+                    ? "Finals"
+                    : "Midterms";
 
-            const matchingIds = semesterSubjects
-                .filter(item =>
-                    item.id !== subjectId &&
-                    item.subject_name.trim().toLowerCase() ===
-                    original.subject_name.trim().toLowerCase()
-                )
-                .map(item => item.id);
+            const { error: syncError } = await supabase
+                .from("subjects")
+                .update({
+                    units: Number(changes.units),
+                    updated_at: new Date().toISOString()
+                })
+                .eq("grade_level", existing.grade_level)
+                .eq("semester", existing.semester)
+                .eq("grading_period", otherPeriod)
+                .ilike("subject_name", existing.subject_name);
 
-            if (matchingIds.length > 0) {
-                const { error: syncError } = await supabase
-                    .from("subjects")
-                    .update({
-                        units: Number(changes.units),
-                        updated_at: new Date().toISOString()
-                    })
-                    .in("id", matchingIds)
-                    .eq("user_id", user.id);
-
-                if (syncError) throw syncError;
-            }
+            if (syncError) throw syncError;
         }
 
         return data;
     }
+
 
     async function deleteSubject(subjectId) {
         await getCurrentUser();
@@ -246,9 +237,185 @@
         if (error) throw error;
     }
 
-    /* =========================================
-       SUBJECT GRADES
-    ========================================= */
+
+    // GRADING COMPONENTS
+
+    async function getComponents(subjectId) {
+        await getCurrentUser();
+
+        const { data, error } = await supabase
+            .from("grading_components")
+            .select("*")
+            .eq("subject_id", subjectId)
+            .order("display_order", { ascending: true });
+
+        if (error) throw error;
+
+        return data || [];
+    }
+
+
+    async function addComponent(subjectId, component) {
+        const user = await getCurrentUser();
+
+        const { data, error } = await supabase
+            .from("grading_components")
+            .insert({
+                user_id: user.id,
+                subject_id: subjectId,
+                component_name: component.component_name,
+                weight: Number(component.weight) || 0,
+                display_order: Number(component.display_order) || 0
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+
+
+    async function updateComponent(componentId, changes) {
+        await getCurrentUser();
+
+        const allowedChanges = {};
+
+        if (changes.component_name !== undefined) {
+            allowedChanges.component_name = changes.component_name;
+        }
+
+        if (changes.weight !== undefined) {
+            allowedChanges.weight = Number(changes.weight);
+        }
+
+        if (changes.display_order !== undefined) {
+            allowedChanges.display_order = Number(changes.display_order);
+        }
+
+        allowedChanges.updated_at = new Date().toISOString();
+
+        const { data, error } = await supabase
+            .from("grading_components")
+            .update(allowedChanges)
+            .eq("id", componentId)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+
+
+    async function deleteComponent(componentId) {
+        await getCurrentUser();
+
+        const { error } = await supabase
+            .from("grading_components")
+            .delete()
+            .eq("id", componentId);
+
+        if (error) throw error;
+    }
+
+
+    // ASSESSMENTS
+
+    async function getAssessments(componentId) {
+        await getCurrentUser();
+
+        const { data, error } = await supabase
+            .from("assessments")
+            .select("*")
+            .eq("component_id", componentId)
+            .order("display_order", { ascending: true });
+
+        if (error) throw error;
+
+        return data || [];
+    }
+
+
+    async function addAssessment(componentId, assessment) {
+        const user = await getCurrentUser();
+
+        const { data, error } = await supabase
+            .from("assessments")
+            .insert({
+                user_id: user.id,
+                component_id: componentId,
+                assessment_name: assessment.assessment_name || "",
+                assessment_date: assessment.assessment_date || null,
+                points_earned: assessment.points_earned ?? null,
+                points_possible: assessment.points_possible ?? null,
+                display_order: Number(assessment.display_order) || 0
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+
+
+    async function updateAssessment(assessmentId, changes) {
+        await getCurrentUser();
+
+        const allowedChanges = {};
+
+        if (changes.assessment_name !== undefined) {
+            allowedChanges.assessment_name = changes.assessment_name;
+        }
+
+        if (changes.assessment_date !== undefined) {
+            allowedChanges.assessment_date =
+                changes.assessment_date || null;
+        }
+
+        if (changes.points_earned !== undefined) {
+            allowedChanges.points_earned =
+                changes.points_earned === "" ? null : changes.points_earned;
+        }
+
+        if (changes.points_possible !== undefined) {
+            allowedChanges.points_possible =
+                changes.points_possible === "" ? null : changes.points_possible;
+        }
+
+        if (changes.display_order !== undefined) {
+            allowedChanges.display_order = Number(changes.display_order);
+        }
+
+        allowedChanges.updated_at = new Date().toISOString();
+
+        const { data, error } = await supabase
+            .from("assessments")
+            .update(allowedChanges)
+            .eq("id", assessmentId)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+
+
+    async function deleteAssessment(assessmentId) {
+        await getCurrentUser();
+
+        const { error } = await supabase
+            .from("assessments")
+            .delete()
+            .eq("id", assessmentId);
+
+        if (error) throw error;
+    }
+
+
+    // SUBJECT GRADES
 
     async function getSubjectGrade(subjectId) {
         await getCurrentUser();
@@ -264,6 +431,7 @@
         return data;
     }
 
+
     async function getSubjectGrades(subjectIds) {
         await getCurrentUser();
 
@@ -278,23 +446,45 @@
 
         if (error) throw error;
 
-        return data;
+        return data || [];
     }
 
-    async function saveSubjectGrade(subjectId, gradeData) {
+
+    async function saveSubjectGrade(subjectId, changes) {
         const user = await getCurrentUser();
+
+        // Preserve existing values when only one grade type changes.
+        const existing = await getSubjectGrade(subjectId);
+
+        const record = {
+            user_id: user.id,
+            subject_id: subjectId,
+            manual_grade: existing?.manual_grade ?? null,
+            calculated_grade: existing?.calculated_grade ?? null,
+            graded_assessments: existing?.graded_assessments ?? 0,
+            weight_valid: existing?.weight_valid ?? false,
+            updated_at: new Date().toISOString()
+        };
+
+        if (changes.manual_grade !== undefined) {
+            record.manual_grade = changes.manual_grade;
+        }
+
+        if (changes.calculated_grade !== undefined) {
+            record.calculated_grade = changes.calculated_grade;
+        }
+
+        if (changes.graded_assessments !== undefined) {
+            record.graded_assessments = changes.graded_assessments;
+        }
+
+        if (changes.weight_valid !== undefined) {
+            record.weight_valid = changes.weight_valid;
+        }
 
         const { data, error } = await supabase
             .from("subject_grades")
-            .upsert({
-                user_id: user.id,
-                subject_id: subjectId,
-                manual_grade: gradeData.manual_grade ?? null,
-                calculated_grade: gradeData.calculated_grade ?? null,
-                graded_assessments: gradeData.graded_assessments || 0,
-                weight_valid: Boolean(gradeData.weight_valid),
-                updated_at: new Date().toISOString()
-            }, {
+            .upsert(record, {
                 onConflict: "user_id,subject_id"
             })
             .select()
@@ -305,212 +495,67 @@
         return data;
     }
 
-    /* =========================================
-       GRADING COMPONENTS
-    ========================================= */
 
-    async function getComponents(subjectId) {
-        await getCurrentUser();
+    // COMPLETE GRADEBOOK DATA
 
-        const { data, error } = await supabase
-            .from("grading_components")
-            .select("*")
-            .eq("subject_id", subjectId)
-            .order("display_order", { ascending: true });
+    async function getGradebookData(subjectId) {
+        const subject = await getSubjectById(subjectId);
 
-        if (error) throw error;
+        if (!subject) {
+            throw new Error("Subject not found.");
+        }
 
-        return data;
-    }
+        const components = await getComponents(subjectId);
 
-    async function saveComponents(subjectId, components) {
-        const user = await getCurrentUser();
+        const componentsWithAssessments = await Promise.all(
+            components.map(async component => {
+                const assessments = await getAssessments(component.id);
 
-        const rows = components.map((component, index) => ({
-            ...(component.id ? { id: component.id } : {}),
-            user_id: user.id,
-            subject_id: subjectId,
-            component_name: String(
-                component.component_name || ""
-            ).trim(),
-            weight: Number(component.weight),
-            display_order: index
-        }));
-
-        if (rows.length === 0) return [];
-
-        const { data, error } = await supabase
-            .from("grading_components")
-            .upsert(rows, { onConflict: "id" })
-            .select();
-
-        if (error) throw error;
-
-        return data;
-    }
-
-    async function deleteComponent(componentId) {
-        await getCurrentUser();
-
-        const { error } = await supabase
-            .from("grading_components")
-            .delete()
-            .eq("id", componentId);
-
-        if (error) throw error;
-    }
-
-    /* =========================================
-       ASSESSMENTS
-    ========================================= */
-
-    async function getAssessments(componentId) {
-        await getCurrentUser();
-
-        const { data, error } = await supabase
-            .from("assessments")
-            .select("*")
-            .eq("component_id", componentId)
-            .order("display_order", { ascending: true });
-
-        if (error) throw error;
-
-        return data;
-    }
-
-    async function saveAssessments(componentId, assessments) {
-        const user = await getCurrentUser();
-
-        const rows = assessments.map((assessment, index) => ({
-            ...(assessment.id ? { id: assessment.id } : {}),
-            user_id: user.id,
-            component_id: componentId,
-            assessment_name: String(
-                assessment.assessment_name || ""
-            ),
-            assessment_date: assessment.assessment_date || null,
-            points_earned:
-                assessment.points_earned === "" ||
-                assessment.points_earned === null ||
-                assessment.points_earned === undefined
-                    ? null
-                    : Number(assessment.points_earned),
-            points_possible:
-                assessment.points_possible === "" ||
-                assessment.points_possible === null ||
-                assessment.points_possible === undefined
-                    ? null
-                    : Number(assessment.points_possible),
-            display_order: index
-        }));
-
-        if (rows.length === 0) return [];
-
-        const { data, error } = await supabase
-            .from("assessments")
-            .upsert(rows, { onConflict: "id" })
-            .select();
-
-        if (error) throw error;
-
-        return data;
-    }
-
-    async function deleteAssessment(assessmentId) {
-        await getCurrentUser();
-
-        const { error } = await supabase
-            .from("assessments")
-            .delete()
-            .eq("id", assessmentId);
-
-        if (error) throw error;
-    }
-
-    /* =========================================
-       ACADEMIC GOALS
-    ========================================= */
-
-    async function getGoals(context = getAcademicContext()) {
-        const user = await getCurrentUser();
-
-        const { data, error } = await supabase
-            .from("academic_goals")
-            .select("*")
-            .eq("user_id", user.id)
-            .eq("grade_level", context.grade_level)
-            .eq("semester", context.semester)
-            .eq("grading_period", context.grading_period);
-
-        if (error) throw error;
-
-        return data;
-    }
-
-    async function saveGoal(goal) {
-        const user = await getCurrentUser();
-
-        const { data, error } = await supabase
-            .from("academic_goals")
-            .upsert({
-                user_id: user.id,
-                goal_type: goal.goal_type,
-                subject_id: goal.subject_id ?? null,
-                target_grade: Number(goal.target_grade),
-                grade_level: goal.grade_level,
-                semester: goal.semester,
-                grading_period: goal.grading_period,
-                updated_at: new Date().toISOString()
+                return {
+                    ...component,
+                    assessments: assessments
+                };
             })
-            .select()
-            .single();
+        );
 
-        if (error) throw error;
+        const grade = await getSubjectGrade(subjectId);
 
-        return data;
+        return {
+            subject,
+            components: componentsWithAssessments,
+            grade
+        };
     }
 
-    async function deleteGoal(goalId) {
-        await getCurrentUser();
 
-        const { error } = await supabase
-            .from("academic_goals")
-            .delete()
-            .eq("id", goalId);
-
-        if (error) throw error;
-    }
-
-    /* =========================================
-       PUBLIC DATABASE API
-    ========================================= */
+    // PUBLIC DATABASE FUNCTIONS
 
     window.aralyticsDB = {
         getCurrentUser,
         getAcademicContext,
 
         getSubjects,
-        getSemesterSubjects,
+        getSubjectsForSemester,
         getSubjectById,
         addSubject,
         updateSubject,
         deleteSubject,
 
+        getComponents,
+        addComponent,
+        updateComponent,
+        deleteComponent,
+
+        getAssessments,
+        addAssessment,
+        updateAssessment,
+        deleteAssessment,
+
         getSubjectGrade,
         getSubjectGrades,
         saveSubjectGrade,
 
-        getComponents,
-        saveComponents,
-        deleteComponent,
-
-        getAssessments,
-        saveAssessments,
-        deleteAssessment,
-
-        getGoals,
-        saveGoal,
-        deleteGoal
+        getGradebookData
     };
 
     console.log("Aralytics database helper loaded!");
